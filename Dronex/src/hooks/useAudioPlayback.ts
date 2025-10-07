@@ -1,34 +1,54 @@
+import { useState, useRef, useCallback } from 'react';
 
-import { useRef, useCallback } from 'react';
+export interface UseAudioPlaybackReturn {
+  isPlaying: boolean;
+  play: (audioUrl: string) => Promise<void>;
+  stop: () => void;
+  error: string | null;
+}
 
-export const useAudioPlayback = () => {
+export const useAudioPlayback = (): UseAudioPlaybackReturn => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const playAudio = useCallback(async (audioUrl: string) => {
+  const play = useCallback(async (audioUrl: string) => {
     try {
+      setError(null);
+      
       if (audioRef.current) {
         audioRef.current.pause();
       }
 
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      audioRef.current = new Audio(audioUrl);
       
-      await audio.play();
-      return new Promise<void>((resolve) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
-      });
-    } catch (error) {
-      console.error('Error playing audio:', error);
+      audioRef.current.onplay = () => setIsPlaying(true);
+      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.onerror = () => {
+        setError('Failed to play audio');
+        setIsPlaying(false);
+      };
+
+      await audioRef.current.play();
+    } catch (err) {
+      setError('Failed to play audio');
+      setIsPlaying(false);
+      console.error('Audio playback error:', err);
     }
   }, []);
 
-  const stopAudio = useCallback(() => {
+  const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current = null;
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
     }
   }, []);
 
-  return { playAudio, stopAudio };
+  return {
+    isPlaying,
+    play,
+    stop,
+    error
+  };
 };

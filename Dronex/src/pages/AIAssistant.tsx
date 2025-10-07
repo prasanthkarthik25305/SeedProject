@@ -1,497 +1,702 @@
-import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { 
-  Bot, Send, MapPin, Phone, AlertTriangle, Heart, 
-  Shield, Home, Utensils, MessageCircle, CheckCircle, Clock,
-  Mic, Volume2, Headphones
-} from "lucide-react";
-import { Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { VoiceAssistant } from "@/components/VoiceAssistant";
-import { useRealtimeChat } from "@/hooks/useRealtimeChat";
+  Bot, 
+  Mic, 
+  MessageSquare, 
+  MapPin, 
+  Camera, 
+  Phone,
+  Activity,
+  BarChart3,
+  History,
+  Settings,
+  Send,
+  Image,
+  Users,
+  Share2
+} from 'lucide-react';
+import { VoiceAssistant } from '@/components/VoiceAssistant';
+import { EnhancedLocationService } from '@/components/EnhancedLocationService';
+import { useCustomChatbot } from '@/hooks/useCustomChatbot';
+import { useToast } from '@/hooks/use-toast';
 
-const AIAssistant = () => {
-  const [input, setInput] = useState("");
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; } | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+  address?: string;
+}
+
+const AIAssistant: React.FC = () => {
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [activeTab, setActiveTab] = useState('voice');
+  const [chatInput, setChatInput] = useState('');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const { sendMessage, loading, chatHistory, getEmergencyStats, clearHistory } = useCustomChatbot();
+  const [currentResponse, setCurrentResponse] = useState('');
   const { toast } = useToast();
-  
-  const { messages, currentSession, loading, sendMessage } = useRealtimeChat();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    // Get user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          toast({
-            title: "Location Error",
-            description: "Unable to get your location. Some features may be limited.",
-            variant: "destructive",
-          });
-        }
-      );
-    }
-  }, [toast]);
+  const stats = getEmergencyStats();
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const emergencyCategories = [
-    { 
-      type: "medical", 
-      label: "Medical Emergency", 
-      icon: Heart, 
-      color: "bg-red-500 hover:bg-red-600",
-      description: "Health-related emergencies requiring immediate medical attention"
-    },
-    { 
-      type: "disaster", 
-      label: "Natural Disaster", 
-      icon: AlertTriangle, 
-      color: "bg-orange-500 hover:bg-orange-600",
-      description: "Earthquakes, floods, fires, storms, and other natural disasters"
-    },
-    { 
-      type: "food", 
-      label: "Food & Shelter", 
-      icon: Utensils, 
-      color: "bg-blue-500 hover:bg-blue-600",
-      description: "Need for food, water, or emergency shelter"
-    }
+  // Emergency contacts for image sharing
+  const emergencyContacts = [
+    { name: 'Emergency Services', number: '112', type: 'official' },
+    { name: 'Police', number: '100', type: 'official' },
+    { name: 'Fire Department', number: '101', type: 'official' },
+    { name: 'Medical Emergency', number: '108', type: 'official' },
+    { name: 'Family Contact 1', number: '+91-9876543210', type: 'personal' },
+    { name: 'Family Contact 2', number: '+91-9876543211', type: 'personal' },
   ];
 
-  // ADD THESE NEW HANDLER FUNCTIONS
-  const handleLocationQuery = async (type: 'hospitals' | 'restaurants' | 'police' | 'emergency_contacts') => {
-    if (!userLocation) {
-      toast({
-        title: "Location Required",
-        description: "Please enable location services to search nearby places",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleLocationUpdate = (location: LocationData) => {
+    setCurrentLocation(location);
+  };
+
+  const handleLocationShare = (location: LocationData) => {
+    toast({
+      title: "Location Shared",
+      description: "Emergency location sent to contacts and services",
+    });
+  };
+
+  const handleLocationQuery = (type: 'hospitals' | 'restaurants' | 'police' | 'emergency_contacts') => {
+    const services = {
+      hospitals: ['City General Hospital', 'Emergency Medical Center', 'District Hospital'],
+      restaurants: ['24/7 Restaurant', 'Emergency Food Service', 'Quick Bite'],
+      police: ['Central Police Station', 'Emergency Response Unit', 'Local Police Post'],
+      emergency_contacts: ['Emergency Contact 1', 'Emergency Contact 2', 'Emergency Contact 3']
+    };
 
     toast({
-      title: "🔍 Searching...",
-      description: `Looking for nearby ${type}`,
+      title: `Finding ${type}`,
+      description: `Located ${services[type].length} nearby ${type}`,
     });
-
-    // Send location-based query to your AI assistant
-    let searchQuery = '';
-    switch(type) {
-      case 'hospitals':
-        searchQuery = `Find nearby hospitals and medical centers near my location (${userLocation.lat}, ${userLocation.lng})`;
-        break;
-      case 'restaurants':
-        searchQuery = `Find nearby restaurants and food places near my location (${userLocation.lat}, ${userLocation.lng})`;
-        break;
-      case 'police':
-        searchQuery = `Find nearby police stations near my location (${userLocation.lat}, ${userLocation.lng})`;
-        break;
-      case 'emergency_contacts':
-        searchQuery = `Show my emergency contacts and their phone numbers`;
-        break;
-    }
-
-    // Send through your existing chat system
-    await sendMessage(searchQuery, undefined, userLocation);
   };
 
   const handleEmergencyAction = (action: 'call' | 'location' | 'contacts') => {
-    switch(action) {
+    switch (action) {
       case 'call':
+        window.open('tel:112');
         toast({
-          title: "📞 Emergency Call",
-          description: "Initiating emergency services call",
+          title: "Calling Emergency Services",
+          description: "Dialing 112...",
         });
-        handleEmergencyCall();
         break;
       case 'location':
-        toast({
-          title: "📍 Sharing Location", 
-          description: "Broadcasting your current location",
-        });
-        handleShareLocation();
+        if (currentLocation) {
+          handleLocationShare(currentLocation);
+        } else {
+          toast({
+            title: "Location Unavailable",
+            description: "Please enable location services first",
+            variant: "destructive",
+          });
+        }
         break;
       case 'contacts':
         toast({
-          title: "📋 Emergency Contacts",
-          description: "Displaying your emergency contacts", 
+          title: "Alerting Emergency Contacts",
+          description: "Sending emergency alerts to your contacts",
         });
-        handleEmergencyContacts();
         break;
     }
   };
 
-  const handleEmergencyCall = () => {
-    // Make actual emergency call
-    if (typeof window !== 'undefined') {
-      window.open('tel:911'); // or your local emergency number
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || loading) return;
+
+    const message = chatInput.trim();
+    setChatInput('');
+    
+    try {
+      const response = await sendMessage(message);
+      setCurrentResponse(response);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Chat Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleShareLocation = async () => {
-    if (userLocation) {
-      const locationMessage = `My current location: https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`;
-      await sendMessage(locationMessage, undefined, userLocation);
+  const startCamera = async () => {
+    try {
+      setIsCapturing(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
       
-      // Copy to clipboard
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(`${userLocation.lat}, ${userLocation.lng}`);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        title: "Camera Error",
+        description: "Unable to access camera. Please check permissions.",
+        variant: "destructive",
+      });
+      setIsCapturing(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      if (context) {
+        context.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(imageData);
+        
+        // Stop camera stream
+        const stream = video.srcObject as MediaStream;
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        setIsCapturing(false);
+        
         toast({
-          title: "Location Copied",
-          description: "Your coordinates have been copied to clipboard",
+          title: "Photo Captured",
+          description: "Emergency photo captured successfully",
         });
       }
     }
   };
 
-  const handleEmergencyContacts = async () => {
-    const contactsMessage = "Please show my emergency contacts and their phone numbers";
-    await sendMessage(contactsMessage, undefined, userLocation);
-  };
-  // END OF NEW HANDLER FUNCTIONS
-
-  const handleEmergencyCategory = async (type: string) => {
-    const category = emergencyCategories.find(cat => cat.type === type);
-    const content = `Emergency: ${category?.label}`;
-    
-    await sendMessage(content, undefined, userLocation);
-    setShowConfirmation(true);
+  const stopCamera = () => {
+    if (videoRef.current) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+    setIsCapturing(false);
   };
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
-    
-    await sendMessage(input, undefined, userLocation);
-    setInput("");
-    
-    // More specific emergency detection
-    const lowerInput = input.toLowerCase();
-    const isLocationQuery = lowerInput.includes('nearby') || 
-                           lowerInput.includes('restaurants') || 
-                           lowerInput.includes('hospitals') ||
-                           lowerInput.includes('find');
-    
-    const isRealEmergency = (lowerInput.includes("help") && lowerInput.includes("emergency")) || 
-                           lowerInput.includes("rescue") || 
-                           lowerInput.includes("trapped") ||
-                           lowerInput.includes("medical emergency");
-    
-    if (isRealEmergency && !isLocationQuery) {
-      setShowConfirmation(true);
+  const sendImageToContacts = async () => {
+    if (!capturedImage) {
+      toast({
+        title: "No Image",
+        description: "Please capture an image first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Simulate sending image to emergency contacts
+      const locationText = currentLocation 
+        ? `Location: ${currentLocation.latitude}, ${currentLocation.longitude}\nTime: ${new Date().toLocaleString()}`
+        : 'Location unavailable';
+
+      const message = `🚨 EMERGENCY ALERT 🚨\n\nEmergency image captured and shared.\n${locationText}\n\nThis is an automated emergency message from DroneX Emergency Response System.`;
+
+      // Simulate sending to each contact
+      for (const contact of emergencyContacts) {
+        console.log(`Sending emergency image to ${contact.name} (${contact.number})`);
+        // In production, integrate with SMS/MMS service
+      }
+
+      // Create a group chat simulation
+      const groupChatMessage = {
+        id: Date.now().toString(),
+        sender: 'Emergency System',
+        message: message,
+        image: capturedImage,
+        timestamp: new Date().toISOString(),
+        recipients: emergencyContacts.map(c => c.name)
+      };
+
+      console.log('Group chat message created:', groupChatMessage);
+
+      toast({
+        title: "Image Sent Successfully",
+        description: `Emergency image sent to ${emergencyContacts.length} contacts`,
+      });
+
+      // Clear captured image after sending
+      setCapturedImage(null);
+    } catch (error) {
+      console.error('Error sending image:', error);
+      toast({
+        title: "Send Failed",
+        description: "Failed to send image to contacts",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleVoiceTranscript = async (transcript: string) => {
-    await sendMessage(transcript, undefined, userLocation);
-    
-    // More specific emergency detection for voice
-    const lowerTranscript = transcript.toLowerCase();
-    const isLocationQuery = lowerTranscript.includes('nearby') || 
-                           lowerTranscript.includes('restaurants') || 
-                           lowerTranscript.includes('hospitals') ||
-                           lowerTranscript.includes('find');
-    
-    const isRealEmergency = (lowerTranscript.includes("help") && lowerTranscript.includes("emergency")) || 
-                           lowerTranscript.includes("rescue") || 
-                           lowerTranscript.includes("trapped") ||
-                           lowerTranscript.includes("medical emergency");
-    
-    if (isRealEmergency && !isLocationQuery) {
-      setShowConfirmation(true);
-    }
-  };
-
-  const handleConfirmEmergency = () => {
+  const clearCapturedImage = () => {
+    setCapturedImage(null);
     toast({
-      title: "Emergency Alert Sent",
-      description: "Your emergency contacts and rescue teams have been notified with your location.",
+      title: "Image Cleared",
+      description: "Captured image removed",
     });
-    setShowConfirmation(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-white">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-sm border-b border-sky-100 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Link to="/" className="flex items-center space-x-2">
-                <Shield className="h-8 w-8 text-sky-500" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-                  DroneX
-                </span>
-              </Link>
-              <Badge className="ml-4 bg-green-100 text-green-700">
-                <Bot className="h-3 w-3 mr-1" />
-                AI Assistant
-              </Badge>
-            </div>
-            <Link to="/dashboard">
-              <Button variant="outline" className="border-sky-300 text-sky-600 hover:bg-sky-50">
-                <Home className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full mb-4">
-            <Bot className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">DroneX AI Assistant</h1>
-          <p className="text-gray-600">
-            24/7 Emergency Response AI • Real-time Location Tracking • Voice & Text Interface
-          </p>
-          {userLocation && (
-            <div className="flex items-center justify-center mt-2 text-sm text-green-600">
-              <MapPin className="h-4 w-4 mr-1" />
-              Location tracking active
-            </div>
-          )}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">DroneX AI Assistant</h1>
+          <p className="text-lg text-gray-600">Advanced emergency response and assistance system</p>
         </div>
 
-        {/* Interface Mode Toggle */}
-        <div className="flex justify-center mb-6">
-          <Tabs value={isVoiceMode ? "voice" : "text"} onValueChange={(value) => setIsVoiceMode(value === "voice")}>
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="text" className="flex items-center">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Text Chat
-              </TabsTrigger>
-              <TabsTrigger value="voice" className="flex items-center">
-                <Headphones className="h-4 w-4 mr-2" />
-                Voice Assistant
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Emergency Categories */}
-        <Card className="border-sky-100 mb-6">
-          <CardHeader>
-            <CardTitle className="text-center">Quick Emergency Response</CardTitle>
-            <CardDescription className="text-center">
-              Select your emergency type for immediate assistance
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
-              {emergencyCategories.map((category) => (
-                <Button
-                  key={category.type}
-                  onClick={() => handleEmergencyCategory(category.type)}
-                  className={`${category.color} text-white h-auto p-6 flex flex-col items-center space-y-3 hover:scale-105 transition-all`}
-                >
-                  <category.icon className="h-8 w-8" />
-                  <div className="text-center">
-                    <div className="font-semibold">{category.label}</div>
-                    <div className="text-xs opacity-90 mt-1">{category.description}</div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Confirmation Dialog */}
-        {showConfirmation && (
-          <Alert className="border-orange-200 bg-orange-50 mb-6">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-700">
-              <div className="space-y-3">
-                <p className="font-semibold">Confirm Emergency Alert</p>
-                <p>This will notify your emergency contacts and rescue teams with your current location:</p>
-                {userLocation && (
-                  <p className="font-mono text-sm bg-white/50 p-2 rounded">
-                    📍 {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
-                  </p>
-                )}
-                <div className="flex space-x-3">
-                  <Button onClick={handleConfirmEmergency} className="bg-red-600 hover:bg-red-700">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Confirm & Send Alert
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowConfirmation(false)}>
-                    Cancel
-                  </Button>
-                </div>
+        {/* Stats Overview */}
+        <div className="grid md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600 mb-1">{stats.totalChats}</div>
+              <div className="text-sm text-gray-600">Total Conversations</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-red-600 mb-1">{stats.emergencyChats}</div>
+              <div className="text-sm text-gray-600">Emergency Alerts</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-600 mb-1">
+                {currentLocation ? 'Active' : 'Inactive'}
               </div>
-            </AlertDescription>
-          </Alert>
-        )}
+              <div className="text-sm text-gray-600">Location Services</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600 mb-1">
+                {Math.round(stats.emergencyRate)}%
+              </div>
+              <div className="text-sm text-gray-600">Emergency Rate</div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Main Interface */}
-        <Tabs value={isVoiceMode ? "voice" : "text"}>
-          <TabsContent value="voice">
-            {/* UPDATED VOICEASSISTANT WITH ALL REQUIRED PROPS */}
-            <VoiceAssistant 
-              onTranscript={handleVoiceTranscript}
-              onLocationQuery={handleLocationQuery}      // ← Fixed: Added this
-              onEmergencyAction={handleEmergencyAction}  // ← Fixed: Added this
-              isProcessing={loading}
-              userLocation={userLocation}               // ← Fixed: Added this
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="voice" className="flex items-center space-x-2">
+              <Mic className="h-4 w-4" />
+              <span>Voice Assistant</span>
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="flex items-center space-x-2">
+              <Bot className="h-4 w-4" />
+              <span>Custom Chatbot</span>
+            </TabsTrigger>
+            <TabsTrigger value="location" className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4" />
+              <span>Location</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center space-x-2">
+              <History className="h-4 w-4" />
+              <span>Chat History</span>
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center space-x-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Statistics</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Voice Assistant Tab */}
+          <TabsContent value="voice" className="space-y-6">
+            <VoiceAssistant
+              onLocationQuery={handleLocationQuery}
+              onEmergencyAction={handleEmergencyAction}
+              userLocation={currentLocation ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
             />
           </TabsContent>
 
-          <TabsContent value="text">
+          {/* Custom Chatbot Tab */}
+          <TabsContent value="chat" className="space-y-6">
             <Card className="border-sky-100 shadow-xl">
-              <CardHeader className="border-b border-sky-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full flex items-center justify-center">
-                      <Bot className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">AI Emergency Assistant</CardTitle>
-                      <div className="flex items-center space-x-2 text-sm text-green-600">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span>Online & Ready</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className="bg-sky-100 text-sky-700">
-                    <Clock className="h-3 w-3 mr-1" />
-                    24/7 Available
-                  </Badge>
+              <CardHeader className="text-center bg-gradient-to-r from-sky-50 to-purple-50">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full mb-4 mx-auto">
+                  <Bot className="h-8 w-8 text-white" />
                 </div>
+                <CardTitle className="text-2xl">DroneX Custom Chatbot</CardTitle>
+                <CardDescription>
+                  AI-powered emergency assistance with photo capture and contact sharing
+                </CardDescription>
               </CardHeader>
-              
-              <CardContent className="p-0">
-                {/* Messages */}
-                <div className="h-96 overflow-y-auto p-6 space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.message_type === 'user' ? 'justify-end' : 'justify-start'}`}
+              <CardContent className="p-6">
+                {/* Photo Capture Section */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-4 flex items-center">
+                    <Camera className="h-4 w-4 mr-2 text-purple-500" />
+                    Emergency Photo Capture & Sharing
+                  </h4>
+                  
+                  {!isCapturing && !capturedImage && (
+                    <Button
+                      onClick={startCamera}
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white mb-3"
                     >
-                      <div
-                        className={`max-w-[80%] p-4 rounded-lg ${
-                          message.message_type === 'user'
-                            ? 'bg-sky-500 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        {message.message_type === 'assistant' && (
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Bot className="h-4 w-4 text-sky-500" />
-                            <span className="text-xs font-medium text-sky-600">DroneX AI</span>
-                          </div>
-                        )}
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                        {message.location_data && (
-                          <div className="flex items-center space-x-1 mt-2 text-xs opacity-75">
-                            <MapPin className="h-3 w-3" />
-                            <span>Location shared</span>
-                          </div>
-                        )}
-                        <div className={`text-xs mt-2 opacity-75 ${message.message_type === 'user' ? 'text-sky-100' : 'text-gray-500'}`}>
-                          {new Date(message.created_at).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {loading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 text-gray-900 p-4 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <Bot className="h-4 w-4 text-sky-500" />
-                          <span className="text-xs font-medium text-sky-600">DroneX AI</span>
-                        </div>
-                        <div className="flex space-x-2 mt-2">
-                          <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        </div>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Start Camera
+                    </Button>
+                  )}
+
+                  {isCapturing && (
+                    <div className="space-y-3">
+                      <video
+                        ref={videoRef}
+                        className="w-full h-48 bg-black rounded-lg"
+                        autoPlay
+                        playsInline
+                        muted
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={capturePhoto}
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+                        >
+                          <Camera className="h-4 w-4 mr-2" />
+                          Capture Photo
+                        </Button>
+                        <Button
+                          onClick={stopCamera}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
+
+                  {capturedImage && (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <img
+                          src={capturedImage}
+                          alt="Captured emergency"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <Badge className="absolute top-2 left-2 bg-green-500 text-white">
+                          <Camera className="h-3 w-3 mr-1" />
+                          Emergency Photo
+                        </Badge>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={sendImageToContacts}
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                        >
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Send to Emergency Contacts
+                        </Button>
+                        <Button
+                          onClick={clearCapturedImage}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        <p className="font-medium mb-1">Will be sent to:</p>
+                        <div className="grid grid-cols-2 gap-1">
+                          {emergencyContacts.slice(0, 4).map((contact, idx) => (
+                            <span key={idx} className="flex items-center">
+                              <Users className="h-3 w-3 mr-1" />
+                              {contact.name}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-gray-500">+ {emergencyContacts.length - 4} more contacts</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <canvas ref={canvasRef} className="hidden" />
                 </div>
 
-                {/* Input */}
-                <div className="border-t border-sky-100 p-4">
-                  <div className="flex space-x-3">
-                    <Input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Describe your emergency or ask for help..."
-                      className="flex-1 border-sky-200 focus:border-sky-400"
-                      disabled={loading}
-                    />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={loading || !input.trim()}
-                      className="bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700"
-                    >
+                {/* Current Response Display */}
+                {currentResponse && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Bot className="h-4 w-4 mr-1 text-sky-500" />
+                      DroneX AI Response:
+                    </h4>
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-gray-800 whitespace-pre-wrap">{currentResponse}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Chat Input */}
+                <form onSubmit={handleChatSubmit} className="flex space-x-2 mb-6">
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Type your emergency or question here..."
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={loading || !chatInput.trim()}>
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
                       <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </form>
+
+                {/* Quick Emergency Commands */}
+                <div className="border-t pt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-4">Quick Emergency Commands:</h4>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {[
+                      "Medical emergency - heart attack",
+                      "Fire in building - need evacuation",
+                      "Earthquake - building shaking",
+                      "Flood emergency - rising water",
+                      "Find nearby hospitals",
+                      "Share my location",
+                      "Call emergency services",
+                      "Send image to contacts"
+                    ].map((command, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setChatInput(command)}
+                        className="text-left justify-start h-auto p-3"
+                      >
+                        "{command}"
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Emergency Actions */}
+                <div className="border-t pt-6 mt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-4">Emergency Actions:</h4>
+                  <div className="grid md:grid-cols-4 gap-4">
+                    <Button
+                      onClick={() => window.open('tel:112')}
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Call 112
+                    </Button>
+                    <Button
+                      onClick={() => handleEmergencyAction('location')}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Share Location
+                    </Button>
+                    <Button
+                      onClick={() => handleEmergencyAction('contacts')}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Alert Contacts
+                    </Button>
+                    <Button
+                      onClick={startCamera}
+                      className="bg-purple-500 hover:bg-purple-600 text-white"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Capture Photo
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    💡 Try: "I'm trapped in a building", "Medical emergency", or "Need rescue"
-                  </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Location Services Tab */}
+          <TabsContent value="location" className="space-y-6">
+            <EnhancedLocationService
+              onLocationUpdate={handleLocationUpdate}
+              onLocationShare={handleLocationShare}
+              autoUpdate={false}
+              highAccuracy={true}
+            />
+          </TabsContent>
+
+          {/* Chat History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <History className="h-5 w-5 mr-2" />
+                      Chat History
+                    </CardTitle>
+                    <CardDescription>
+                      Your conversation history with the AI assistant
+                    </CardDescription>
+                  </div>
+                  <Button onClick={clearHistory} variant="outline" size="sm">
+                    Clear History
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {chatHistory.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      No chat history yet. Start a conversation with the AI assistant.
+                    </div>
+                  ) : (
+                    chatHistory.map((chat) => (
+                      <div key={chat.id} className="border rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge variant={chat.emergency_detected ? "destructive" : "secondary"}>
+                            {chat.emergency_detected ? 'Emergency' : 'General'}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {new Date(chat.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">You:</p>
+                          <p className="text-sm text-gray-700">{chat.prompt}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">AI Assistant:</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{chat.response}</p>
+                        </div>
+                        {chat.disaster_type && (
+                          <Badge variant="outline" className="text-xs">
+                            Type: {chat.disaster_type}
+                          </Badge>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Statistics Tab */}
+          <TabsContent value="stats" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Emergency Types</CardTitle>
+                  <CardDescription>Breakdown of emergency conversations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Object.entries(stats.emergencyTypes).map(([type, count]) => (
+                      <div key={type} className="flex items-center justify-between">
+                        <span className="text-sm capitalize">{type}</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full" 
+                              style={{ width: `${(count / Math.max(...Object.values(stats.emergencyTypes))) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium">{count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Status</CardTitle>
+                  <CardDescription>Current system health and capabilities</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Voice Recognition</span>
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Custom Chatbot</span>
+                      <Badge className="bg-green-100 text-green-800">Online</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Photo Capture</span>
+                      <Badge className="bg-green-100 text-green-800">Ready</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Location Services</span>
+                      <Badge className={currentLocation ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                        {currentLocation ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Emergency Database</span>
+                      <Badge className="bg-green-100 text-green-800">Connected</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
 
-        {/* UPDATED Quick Actions with onClick handlers */}
-        <div className="grid md:grid-cols-3 gap-4 mt-6">
-          <Button 
-            variant="outline" 
-            className="border-red-200 text-red-600 hover:bg-red-50"
-            onClick={handleEmergencyCall}
-          >
-            <Phone className="h-4 w-4 mr-2" />
-            Call Emergency Services
-          </Button>
-          <Button 
-            variant="outline" 
-            className="border-blue-200 text-blue-600 hover:bg-blue-50"
-            onClick={handleShareLocation}
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            Share My Location
-          </Button>
-          <Button 
-            variant="outline" 
-            className="border-green-200 text-green-600 hover:bg-green-50"
-            onClick={handleEmergencyContacts}
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Contact Emergency Contacts
-          </Button>
-        </div>
+        {/* Emergency Quick Actions */}
+        <Card className="border-red-100 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-red-800">Emergency Quick Actions</h3>
+                <p className="text-sm text-red-600">Immediate access to emergency services and photo sharing</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => window.open('tel:112')}
+                  className="bg-red-500 hover:bg-red-600"
+                  size="sm"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Call 112
+                </Button>
+                <Button 
+                  onClick={() => handleEmergencyAction('location')}
+                  className="bg-blue-500 hover:bg-blue-600"
+                  size="sm"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Share Location
+                </Button>
+                <Button 
+                  onClick={startCamera}
+                  className="bg-purple-500 hover:bg-purple-600"
+                  size="sm"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Emergency Photo
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

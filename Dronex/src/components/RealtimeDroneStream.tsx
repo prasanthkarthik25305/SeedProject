@@ -1,18 +1,30 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { 
   Camera, Play, Pause, Maximize, Settings, 
   Eye, AlertTriangle, Zap, Users, MapPin, Signal,
-  Monitor, Volume2, FullscreenIcon
+  Monitor, Volume2, FullscreenIcon, Upload, FileVideo,
+  CheckCircle, Loader2, X
 } from "lucide-react";
 import { useDroneStreaming } from '@/hooks/useDroneStreaming';
+import { videoService, VideoUploadResult } from '@/services/videoService';
+import { useToast } from '@/hooks/use-toast';
 
 interface RealtimeDroneStreamProps {
   fullSize?: boolean;
+}
+
+interface VideoAnalysis {
+  id: string;
+  video_url: string;
+  analysis_status: string;
+  detected_objects: any[];
+  disaster_indicators: any[];
+  confidence_scores: Record<string, number>;
 }
 
 export const RealtimeDroneStream = ({ fullSize = false }: RealtimeDroneStreamProps) => {
@@ -20,9 +32,15 @@ export const RealtimeDroneStream = ({ fullSize = false }: RealtimeDroneStreamPro
   const [isPlaying, setIsPlaying] = useState(true);
   const [detectedObjects, setDetectedObjects] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoAnalysis, setVideoAnalysis] = useState<VideoAnalysis | null>(null);
+  const [showUploadSection, setShowUploadSection] = useState(false);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (currentStream && isPlaying) {
@@ -98,6 +116,81 @@ export const RealtimeDroneStream = ({ fullSize = false }: RealtimeDroneStreamPro
     joinStream(stream.id);
   };
 
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    try {
+      const result: VideoUploadResult = await videoService.uploadVideo(file);
+      
+      if (result.success) {
+        toast({
+          title: "Video Upload Successful",
+          description: "Your video has been uploaded and analysis is starting...",
+        });
+
+        // Poll for analysis results
+        if (result.analysisId) {
+          pollForAnalysis(result.analysisId);
+        }
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: result.error || "Failed to upload video",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Error",
+        description: "An unexpected error occurred during upload",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingVideo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const pollForAnalysis = async (analysisId: string) => {
+    const maxAttempts = 20;
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        attempts++;
+        const analysis = await videoService.getVideoAnalysis(analysisId);
+        
+        if (analysis) {
+          setVideoAnalysis(analysis);
+          
+          if (analysis.analysis_status === 'completed') {
+            toast({
+              title: "Analysis Complete",
+              description: `Found ${analysis.detected_objects.length} objects and ${analysis.disaster_indicators.length} disaster indicators`,
+            });
+          } else if (analysis.analysis_status === 'failed') {
+            toast({
+              title: "Analysis Failed",
+              description: "Video analysis could not be completed",
+              variant: "destructive",
+            });
+          } else if (attempts < maxAttempts) {
+            setTimeout(poll, 5000); // Poll every 5 seconds
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for analysis:', error);
+      }
+    };
+
+    poll();
+  };
+
   const containerHeight = fullSize || isFullscreen ? "h-96" : "h-64";
 
   if (loading) {
@@ -115,15 +208,74 @@ export const RealtimeDroneStream = ({ fullSize = false }: RealtimeDroneStreamPro
 
   if (activeStreams.length === 0) {
     return (
-      <Alert className="border-orange-200 bg-orange-50">
-        <AlertTriangle className="h-4 w-4 text-orange-600" />
-        <AlertDescription className="text-orange-700">
-          <div className="space-y-2">
-            <p className="font-semibold">No Active Drone Streams</p>
-            <p>No admin has started a live drone stream yet. Streams will appear here when activated by emergency response teams.</p>
-          </div>
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-700">
+            <div className="space-y-2">
+              <p className="font-semibold">No Active Drone Streams</p>
+              <p>No admin has started a live drone stream yet. Streams will appear here when activated by emergency response teams.</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+
+        {/* Video Upload Section */}
+        <Card className="border-sky-100">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center">
+                <FileVideo className="h-5 w-5 mr-2 text-sky-500" />
+                Video Upload & Analysis
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUploadSection(!showUploadSection)}
+              >
+                {showUploadSection ? <X className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+          {showUploadSection && (
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-sky-200 rounded-lg p-6 text-center">
+                <FileVideo className="h-12 w-12 text-sky-400 mx-auto mb-4" />
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload video files for AI-powered analysis and disaster detection
+                </p>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/mp4,video/mov,video/avi"
+                  onChange={handleVideoUpload}
+                  disabled={uploadingVideo}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingVideo}
+                  className="bg-sky-500 hover:bg-sky-600"
+                >
+                  {uploadingVideo ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose Video File
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Supported formats: MP4, MOV, AVI (Max: 100MB)
+                </p>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      </div>
     );
   }
 
@@ -267,6 +419,63 @@ export const RealtimeDroneStream = ({ fullSize = false }: RealtimeDroneStreamPro
           )}
         </div>
       </div>
+
+      {/* Video Analysis Results */}
+      {videoAnalysis && (
+        <Card className="border-sky-100">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Eye className="h-5 w-5 mr-2 text-sky-500" />
+              Video Analysis Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Badge className={`${
+                videoAnalysis.analysis_status === 'completed' ? 'bg-green-100 text-green-700' :
+                videoAnalysis.analysis_status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-red-100 text-red-700'
+              }`}>
+                {videoAnalysis.analysis_status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
+                {videoAnalysis.analysis_status === 'processing' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                Status: {videoAnalysis.analysis_status}
+              </Badge>
+            </div>
+
+            {videoAnalysis.analysis_status === 'completed' && (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Detected Objects</h4>
+                  <div className="space-y-1">
+                    {videoAnalysis.detected_objects.slice(0, 5).map((obj: any, index: number) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{obj.Label?.Name}</span>
+                        <span className="text-gray-500">{obj.Label?.Confidence?.toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Disaster Indicators</h4>
+                  {videoAnalysis.disaster_indicators.length > 0 ? (
+                    <div className="space-y-1">
+                      {videoAnalysis.disaster_indicators.map((indicator: any, index: number) => (
+                        <Badge key={index} className="bg-red-100 text-red-700 mr-1">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          {indicator.Label?.Name}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No disaster indicators detected</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stream Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -11,6 +11,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.887.0",
+    "@aws-sdk/client-s3": "^3.887.0",
+    "@aws-sdk/client-sns": "^3.887.0",
+    "@aws-sdk/client-sqs": "^3.887.0",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@hookform/resolvers": "^3.9.0",
     "@huggingface/inference": "^4.7.1",
