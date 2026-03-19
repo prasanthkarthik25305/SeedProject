@@ -220,38 +220,39 @@ const AIAssistant = () => {
     <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-white">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-sky-100 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Link to="/" className="flex items-center space-x-2">
-                <Shield className="h-8 w-8 text-sky-500" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
+                <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-sky-500" />
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
                   DroneX
                 </span>
               </Link>
-              <Badge className="ml-4 bg-green-100 text-green-700">
+              <Badge className="ml-2 sm:ml-4 bg-green-100 text-green-700 text-xs sm:text-sm">
                 <Bot className="h-3 w-3 mr-1" />
                 AI Assistant
               </Badge>
             </div>
             <Link to="/dashboard">
-              <Button variant="outline" className="border-sky-300 text-sky-600 hover:bg-sky-50">
-                <Home className="h-4 w-4 mr-2" />
-                Dashboard
+              <Button variant="outline" className="border-sky-300 text-sky-600 hover:bg-sky-50 h-9 px-2 sm:px-4 text-xs sm:text-sm">
+                <Home className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Home</span>
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Emergency Status Alert */}
         {emergencyDetected && (
-          <Alert className="mb-6 border-red-200 bg-red-50">
+          <Alert className="mb-4 sm:mb-6 border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
+            <AlertDescription className="text-xs sm:text-sm">
               <div className="font-semibold text-red-800 mb-2">🚨 Emergency Protocol Activated</div>
-              <div className="text-sm text-red-700">
+              <div className="text-xs sm:text-sm text-red-700">
                 • Emergency services have been alerted<br/>
                 • Nearby safe zones identified ({safeZones.length} locations)<br/>
                 • Your location has been shared with responders<br/>
@@ -259,11 +260,11 @@ const AIAssistant = () => {
               </div>
               {safeZones.length > 0 && (
                 <div className="mt-3">
-                  <div className="font-medium">Closest Safe Zone:</div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="font-medium text-xs sm:text-sm">Closest Safe Zone:</div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                     <Navigation className="h-4 w-4" />
-                    <span>{safeZones[0].name} ({safeZones[0].distance_km?.toFixed(1)} km)</span>
-                    <Button size="sm" variant="outline" className="ml-2">
+                    <span className="text-xs sm:text-sm">{safeZones[0].name} ({safeZones[0].distance_km?.toFixed(1)} km)</span>
+                    <Button size="sm" variant="outline" className="ml-0 sm:ml-2 text-xs sm:text-sm">
                       Get Directions
                     </Button>
                   </div>
@@ -274,58 +275,62 @@ const AIAssistant = () => {
         )}
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full mb-4">
-            <Bot className="h-8 w-8 text-white" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full mb-3 sm:mb-4">
+            <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">DroneX AI Assistant</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">DroneX AI Assistant</h1>
+          <p className="text-sm sm:text-base text-gray-600 px-2">
             24/7 Emergency Response AI • Real-time Location Tracking • Voice & Text Interface
           </p>
           {userLocation && (
-            <div className="flex items-center justify-center mt-2 text-sm text-green-600">
-              <MapPin className="h-4 w-4 mr-1" />
-              Location tracking active ({userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)})
+            <div className="flex items-center justify-center mt-2 text-xs sm:text-sm text-green-600">
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden sm:inline">Location tracking active</span>
+              <span className="sm:hidden">Location active</span>
+              <span className="hidden xs:inline"> ({userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)})</span>
             </div>
           )}
         </div>
 
         {/* Interface Mode Toggle */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4 sm:mb-6">
           <Tabs value={isVoiceMode ? "voice" : "text"} onValueChange={(value) => setIsVoiceMode(value === "voice")}>
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="text" className="flex items-center">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Text Chat
+            <TabsList className="grid w-full grid-cols-2 max-w-xs sm:max-w-md">
+              <TabsTrigger value="text" className="flex items-center text-xs sm:text-sm">
+                <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Text Chat</span>
+                <span className="xs:hidden">Text</span>
               </TabsTrigger>
-              <TabsTrigger value="voice" className="flex items-center">
-                <Headphones className="h-4 w-4 mr-2" />
-                Voice Assistant
+              <TabsTrigger value="voice" className="flex items-center text-xs sm:text-sm">
+                <Headphones className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Voice Assistant</span>
+                <span className="xs:hidden">Voice</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
         {/* Emergency Categories */}
-        <Card className="border-sky-100 mb-6">
-          <CardHeader>
-            <CardTitle className="text-center">Quick Emergency Response</CardTitle>
-            <CardDescription className="text-center">
+        <Card className="border-sky-100 mb-4 sm:mb-6">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-center text-base sm:text-lg">Quick Emergency Response</CardTitle>
+            <CardDescription className="text-center text-xs sm:text-sm">
               Select your emergency type for immediate assistance
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               {emergencyCategories.map((category) => (
                 <Button
                   key={category.type}
                   onClick={() => handleEmergencyCategory(category.type)}
-                  className={`${category.color} text-white h-auto p-6 flex flex-col items-center space-y-3 hover:scale-105 transition-all`}
+                  className={`${category.color} text-white h-auto p-3 sm:p-6 flex flex-col items-center space-y-2 sm:space-y-3 hover:scale-105 transition-all`}
                 >
-                  <category.icon className="h-8 w-8" />
+                  <category.icon className="h-6 w-6 sm:h-8 sm:w-8" />
                   <div className="text-center">
-                    <div className="font-semibold">{category.label}</div>
-                    <div className="text-xs opacity-90 mt-1">{category.description}</div>
+                    <div className="font-semibold text-xs sm:text-sm">{category.label}</div>
+                    <div className="text-xs opacity-90 hidden sm:block mt-1">{category.description}</div>
                   </div>
                 </Button>
               ))}
@@ -335,23 +340,23 @@ const AIAssistant = () => {
 
         {/* Confirmation Dialog */}
         {showConfirmation && (
-          <Alert className="border-orange-200 bg-orange-50 mb-6">
+          <Alert className="border-orange-200 bg-orange-50 mb-4 sm:mb-6">
             <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-700">
+            <AlertDescription className="text-orange-700 text-xs sm:text-sm">
               <div className="space-y-3">
                 <p className="font-semibold">Confirm Emergency Alert</p>
                 <p>This will notify your emergency contacts and rescue teams with your current location:</p>
                 {userLocation && (
-                  <p className="font-mono text-sm bg-white/50 p-2 rounded">
+                  <p className="font-mono text-xs sm:text-sm bg-white/50 p-2 rounded">
                     📍 {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
                   </p>
                 )}
-                <div className="flex space-x-3">
-                  <Button onClick={handleConfirmEmergency} className="bg-red-600 hover:bg-red-700">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                  <Button onClick={handleConfirmEmergency} className="bg-red-600 hover:bg-red-700 w-full sm:w-auto text-xs sm:text-sm">
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Confirm & Send Alert
                   </Button>
-                  <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+                  <Button variant="outline" onClick={() => setShowConfirmation(false)} className="w-full sm:w-auto text-xs sm:text-sm">
                     Cancel
                   </Button>
                 </div>
@@ -372,21 +377,21 @@ const AIAssistant = () => {
 
           <TabsContent value="text">
             <Card className="border-sky-100 shadow-xl">
-              <CardHeader className="border-b border-sky-100">
-                <div className="flex items-center justify-between">
+              <CardHeader className="border-b border-sky-100 px-4 sm:px-6 py-3 sm:py-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full flex items-center justify-center">
-                      <Bot className="h-5 w-5 text-white" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full flex items-center justify-center">
+                      <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">AI Emergency Assistant</CardTitle>
-                      <div className="flex items-center space-x-2 text-sm text-green-600">
+                      <CardTitle className="text-base sm:text-lg">AI Emergency Assistant</CardTitle>
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-green-600">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                         <span>Online & Ready</span>
                       </div>
                     </div>
                   </div>
-                  <Badge className="bg-sky-100 text-sky-700">
+                  <Badge className="bg-sky-100 text-sky-700 text-xs sm:text-sm">
                     <Clock className="h-3 w-3 mr-1" />
                     24/7 Available
                   </Badge>
@@ -395,7 +400,7 @@ const AIAssistant = () => {
               
               <CardContent className="p-0">
                 {/* Messages */}
-                <div className="h-96 overflow-y-auto p-6 space-y-4">
+                <div className="h-64 sm:h-96 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -403,7 +408,7 @@ const AIAssistant = () => {
                     >
                       <div className={`max-w-[85%] ${message.message_type === 'user' ? '' : 'w-full'}`}>
                         <div
-                          className={`p-4 rounded-lg ${
+                          className={`p-3 sm:p-4 rounded-lg ${
                             message.message_type === 'user'
                               ? 'bg-sky-500 text-white'
                               : 'bg-gray-100 text-gray-900'
@@ -415,13 +420,16 @@ const AIAssistant = () => {
                               <span className="text-xs font-medium text-sky-600">DroneX AI</span>
                             </div>
                           )}
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.content}</p>
                           {message.location_data && (
                             <div className="flex items-center space-x-1 mt-2 text-xs opacity-75">
                               <MapPin className="h-3 w-3" />
-                              <span>
+                              <span className="hidden sm:inline">
                                 Location: {message.location_data.lat.toFixed(5)}, {message.location_data.lng.toFixed(5)}
                                 {message.location_data.placeName && ` (${message.location_data.placeName})`}
+                              </span>
+                              <span className="sm:hidden">
+                                📍 Location shared
                               </span>
                             </div>
                           )}
@@ -445,7 +453,7 @@ const AIAssistant = () => {
                   ))}
                   {loading && (
                     <div className="flex justify-start">
-                      <div className="bg-gray-100 text-gray-900 p-4 rounded-lg">
+                      <div className="bg-gray-100 text-gray-900 p-3 sm:p-4 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <Bot className="h-4 w-4 text-sky-500" />
                           <span className="text-xs font-medium text-sky-600">DroneX AI</span>
@@ -462,25 +470,25 @@ const AIAssistant = () => {
                 </div>
 
                 {/* Input */}
-                <div className="border-t border-sky-100 p-4">
-                  <div className="flex space-x-3">
+                <div className="border-t border-sky-100 p-3 sm:p-4">
+                  <div className="flex space-x-2 sm:space-x-3">
                     <Input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder="Describe your emergency or ask for help..."
-                      className="flex-1 border-sky-200 focus:border-sky-400"
+                      className="flex-1 border-sky-200 focus:border-sky-400 text-xs sm:text-sm h-9 sm:h-10"
                       disabled={loading}
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={loading || !input.trim()}
-                      className="bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700"
+                      className="bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 h-9 sm:h-10 px-3 sm:px-4"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 mt-2 hidden xs:block">
                     💡 Try: "Nearest safe places to go", "Show hospitals near me", "Find emergency shelters", or "Safe evacuation routes"
                   </p>
                 </div>
@@ -490,18 +498,21 @@ const AIAssistant = () => {
         </Tabs>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-4 mt-6">
-          <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
+          <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-10 text-xs sm:text-sm">
             <Phone className="h-4 w-4 mr-2" />
-            Call Emergency Services
+            <span className="hidden xs:inline">Call Emergency Services</span>
+            <span className="xs:hidden">Emergency</span>
           </Button>
-          <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+          <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-10 text-xs sm:text-sm">
             <MapPin className="h-4 w-4 mr-2" />
-            Share My Location
+            <span className="hidden xs:inline">Share My Location</span>
+            <span className="xs:hidden">Share Location</span>
           </Button>
-          <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50">
+          <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 h-10 text-xs sm:text-sm">
             <MessageCircle className="h-4 w-4 mr-2" />
-            Contact Emergency Contacts
+            <span className="hidden xs:inline">Contact Emergency Contacts</span>
+            <span className="xs:hidden">Contacts</span>
           </Button>
         </div>
       </div>

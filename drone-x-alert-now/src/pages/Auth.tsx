@@ -161,42 +161,42 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-white flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-md">
         {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-6 group">
-            <Shield className="h-8 w-8 text-sky-500 group-hover:text-sky-600 transition-colors" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
+        <div className="text-center mb-6 sm:mb-8">
+          <Link to="/" className="inline-flex items-center space-x-2 mb-4 sm:mb-6 group">
+            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-sky-500 group-hover:text-sky-600 transition-colors" />
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
               DroneX
             </span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to access your emergency management dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+          <p className="text-sm sm:text-base text-gray-600 px-2">Sign in to access your emergency management dashboard</p>
         </div>
 
         <Card className="border-sky-100 shadow-xl shadow-sky-100/20">
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signin" className="data-[state=active]:bg-sky-500 data-[state=active]:text-white">
+            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+              <TabsTrigger value="signin" className="text-xs sm:text-sm data-[state=active]:bg-sky-500 data-[state=active]:text-white">
                 Sign In
               </TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-sky-500 data-[state=active]:text-white">
+              <TabsTrigger value="signup" className="text-xs sm:text-sm data-[state=active]:bg-sky-500 data-[state=active]:text-white">
                 Sign Up
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="text-xl">Sign In</CardTitle>
-                <CardDescription>
+              <CardHeader className="text-center pb-2 px-4 sm:px-6">
+                <CardTitle className="text-lg sm:text-xl">Sign In</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
                   Enter your credentials to access your account
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSignIn} className="space-y-4">
+              <CardContent className="px-4 sm:px-6">
+                <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email" className="text-sm sm:text-base">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -205,13 +205,13 @@ const Auth = () => {
                         placeholder="your@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 border-sky-200 focus:border-sky-400"
+                        className="pl-10 border-sky-200 focus:border-sky-400 h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password" className="text-sm sm:text-base">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -220,16 +220,16 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 border-sky-200 focus:border-sky-400"
+                        className="pl-10 border-sky-200 focus:border-sky-400 h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
 
                   {error && (
-                    <Alert className="border-red-200 bg-red-50">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      <AlertDescription className="text-red-700">
+                    <Alert className="border-red-200 bg-red-50 px-3 py-2 sm:px-4 sm:py-3">
+                      <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                      <AlertDescription className="text-red-700 text-xs sm:text-sm ml-2">
                         {error}
                       </AlertDescription>
                     </Alert>
@@ -237,26 +237,26 @@ const Auth = () => {
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700"
+                    className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 h-10 sm:h-11 text-sm sm:text-base"
                     disabled={loading}
                   >
                     {loading ? "Signing In..." : "Sign In"}
                   </Button>
                 </form>
 
-                <div className="relative my-6">
+                <div className="relative my-4 sm:my-6">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-200" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                    <span className="bg-white px-2 text-gray-500 text-xs">Or continue with</span>
                   </div>
                 </div>
 
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-sky-200 hover:bg-sky-50"
+                  className="w-full border-sky-200 hover:bg-sky-50 h-10 sm:h-11 text-sm sm:text-base"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
                 >
@@ -278,22 +278,22 @@ const Auth = () => {
                       fill="#EA4335"
                     />
                   </svg>
-                  Continue with Google
+                  <span className="text-xs sm:text-sm">Continue with Google</span>
                 </Button>
               </CardContent>
             </TabsContent>
 
             <TabsContent value="signup">
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="text-xl">Create Account</CardTitle>
-                <CardDescription>
+              <CardHeader className="text-center pb-2 px-4 sm:px-6">
+                <CardTitle className="text-lg sm:text-xl">Create Account</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
                   Join DroneX for emergency management services
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSignUp} className="space-y-4">
+              <CardContent className="px-4 sm:px-6">
+                <form onSubmit={handleSignUp} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-sm sm:text-base">Full Name</Label>
                     <div className="relative">
                       <UserIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -302,13 +302,13 @@ const Auth = () => {
                         placeholder="John Doe"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="pl-10 border-sky-200 focus:border-sky-400"
+                        className="pl-10 border-sky-200 focus:border-sky-400 h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-sm sm:text-base">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -317,13 +317,13 @@ const Auth = () => {
                         placeholder="your@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 border-sky-200 focus:border-sky-400"
+                        className="pl-10 border-sky-200 focus:border-sky-400 h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-sm sm:text-base">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -332,13 +332,13 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 border-sky-200 focus:border-sky-400"
+                        className="pl-10 border-sky-200 focus:border-sky-400 h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <Label htmlFor="confirm-password" className="text-sm sm:text-base">Confirm Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -347,16 +347,16 @@ const Auth = () => {
                         placeholder="••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-10 border-sky-200 focus:border-sky-400"
+                        className="pl-10 border-sky-200 focus:border-sky-400 h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
 
                   {error && (
-                    <Alert className="border-red-200 bg-red-50">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      <AlertDescription className="text-red-700">
+                    <Alert className="border-red-200 bg-red-50 px-3 py-2 sm:px-4 sm:py-3">
+                      <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                      <AlertDescription className="text-red-700 text-xs sm:text-sm ml-2">
                         {error}
                       </AlertDescription>
                     </Alert>
@@ -364,26 +364,26 @@ const Auth = () => {
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700"
+                    className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 h-10 sm:h-11 text-sm sm:text-base"
                     disabled={loading}
                   >
                     {loading ? "Creating Account..." : "Create Account"}
                   </Button>
                 </form>
 
-                <div className="relative my-6">
+                <div className="relative my-4 sm:my-6">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-200" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                    <span className="bg-white px-2 text-gray-500 text-xs">Or continue with</span>
                   </div>
                 </div>
 
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-sky-200 hover:bg-sky-50"
+                  className="w-full border-sky-200 hover:bg-sky-50 h-10 sm:h-11 text-sm sm:text-base"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
                 >
@@ -405,15 +405,15 @@ const Auth = () => {
                       fill="#EA4335"
                     />
                   </svg>
-                  Continue with Google
+                  <span className="text-xs sm:text-sm">Continue with Google</span>
                 </Button>
               </CardContent>
             </TabsContent>
           </Tabs>
         </Card>
 
-        <div className="text-center mt-6">
-          <Link to="/" className="text-sky-600 hover:text-sky-700 text-sm">
+        <div className="text-center mt-4 sm:mt-6">
+          <Link to="/" className="text-sky-600 hover:text-sky-700 text-sm sm:text-base">
             ← Back to Home
           </Link>
         </div>

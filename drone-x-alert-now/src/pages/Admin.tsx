@@ -180,60 +180,62 @@ const Admin = () => {
     <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-white">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-sky-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Link to="/" className="flex items-center space-x-2">
-                <Shield className="h-8 w-8 text-sky-500" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
+                <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-sky-500" />
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
                   DroneX Admin
                 </span>
               </Link>
-              <Badge className="ml-4 bg-red-100 text-red-700">
+              <Badge className="ml-2 sm:ml-4 bg-red-100 text-red-700 text-xs sm:text-sm">
                 <Settings className="h-3 w-3 mr-1" />
                 Admin Panel
               </Badge>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <Link to="/dashboard">
-                <Button variant="outline" className="border-sky-300 text-sky-600 hover:bg-sky-50">
-                  <Eye className="h-4 w-4 mr-2" />
-                  User Dashboard
+                <Button variant="outline" className="border-sky-300 text-sky-600 hover:bg-sky-50 h-9 px-2 sm:px-4 text-xs sm:text-sm">
+                  <Eye className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">User Dashboard</span>
+                  <span className="sm:hidden">User</span>
                 </Button>
               </Link>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+              <Button variant="outline" onClick={handleSignOut} className="h-9 px-2 sm:px-4 text-xs sm:text-sm">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="sm:hidden">Out</span>
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Admin Control Center
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Manage system operations, users, and emergency responses
           </p>
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="streams">Live Streams</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="emergencies">Emergencies</TabsTrigger>
-            <TabsTrigger value="alerts">System Alerts</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="streams" className="text-xs sm:text-sm">Streams</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
+            <TabsTrigger value="emergencies" className="text-xs sm:text-sm">Emergency</TabsTrigger>
+            <TabsTrigger value="alerts" className="text-xs sm:text-sm">Alerts</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
               {[
                 { label: "Active Users", value: "247", icon: Users, color: "text-blue-500" },
                 { label: "Live Streams", value: "3", icon: Video, color: "text-green-500" },
@@ -241,41 +243,41 @@ const Admin = () => {
                 { label: "System Status", value: "Online", icon: Activity, color: "text-green-500" },
               ].map((stat, index) => (
                 <Card key={index} className="border-sky-100 hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
+                  <CardContent className="p-3 sm:p-4 lg:p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                        <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <div className="flex-1">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.label}</p>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</p>
                       </div>
-                      <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                      <stat.icon className={`h-6 w-6 sm:h-8 sm:w-8 ${stat.color} flex-shrink-0 ml-2`} />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
               <Card className="border-sky-100">
-                <CardHeader>
-                  <CardTitle>Recent Activities</CardTitle>
-                  <CardDescription>Latest system events and user actions</CardDescription>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg">Recent Activities</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Latest system events and user actions</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {[
                       { type: "emergency", message: "New emergency request received", time: "2 minutes ago" },
                       { type: "stream", message: "Drone stream started in Downtown", time: "5 minutes ago" },
                       { type: "user", message: "New user registered", time: "10 minutes ago" },
                       { type: "system", message: "System backup completed", time: "1 hour ago" },
                     ].map((activity, index) => (
-                      <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
-                        <div className={`w-2 h-2 rounded-full ${
+                      <div key={index} className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg bg-gray-50">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                           activity.type === 'emergency' ? 'bg-red-500' :
                           activity.type === 'stream' ? 'bg-green-500' :
                           activity.type === 'user' ? 'bg-blue-500' : 'bg-gray-500'
                         }`} />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{activity.message}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium truncate">{activity.message}</p>
                           <p className="text-xs text-gray-500">{activity.time}</p>
                         </div>
                       </div>
@@ -285,26 +287,26 @@ const Admin = () => {
               </Card>
 
               <Card className="border-sky-100">
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Common administrative tasks</CardDescription>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Common administrative tasks</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button className="w-full justify-start" variant="outline">
+                <CardContent className="space-y-2 sm:space-y-3">
+                  <Button className="w-full justify-start" variant="outline" size="sm">
                     <Plus className="h-4 w-4 mr-2" />
-                    Start New Drone Stream
+                    <span className="text-xs sm:text-sm">Start New Drone Stream</span>
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="outline" size="sm">
                     <AlertTriangle className="h-4 w-4 mr-2" />
-                    Create System Alert
+                    <span className="text-xs sm:text-sm">Create System Alert</span>
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="outline" size="sm">
                     <Users className="h-4 w-4 mr-2" />
-                    Manage User Roles
+                    <span className="text-xs sm:text-sm">Manage User Roles</span>
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="outline" size="sm">
                     <Database className="h-4 w-4 mr-2" />
-                    Export System Data
+                    <span className="text-xs sm:text-sm">Export System Data</span>
                   </Button>
                 </CardContent>
               </Card>
@@ -320,26 +322,26 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="emergencies">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <Card className="border-sky-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Active Emergency Alerts
-                    <Badge variant="destructive" className="ml-2">
+                <CardHeader className="pb-3 sm:pb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle className="text-base sm:text-lg">Active Emergency Alerts</CardTitle>
+                    <Badge variant="destructive" className="mt-2 sm:mt-0 ml-0 sm:ml-2 text-xs sm:text-sm">
                       {activeEmergencies} Active
                     </Badge>
-                  </CardTitle>
-                  <CardDescription>
+                  </div>
+                  <CardDescription className="text-xs sm:text-sm">
                     Real-time emergency alerts from the system
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Button onClick={() => console.log('Debug: Active emergencies:', activeEmergencies)} variant="outline" size="sm">
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => console.log('Debug: Active emergencies:', activeEmergencies)} variant="outline" size="sm" className="text-xs sm:text-sm">
                         🐛 Debug Info
                       </Button>
-                      <Button onClick={() => fetchActiveEmergencies()} variant="outline" size="sm">
+                      <Button onClick={() => fetchActiveEmergencies()} variant="outline" size="sm" className="text-xs sm:text-sm">
                         🔄 Refresh Alerts
                       </Button>
                     </div>
@@ -356,42 +358,42 @@ const Admin = () => {
 
           <TabsContent value="settings">
             <Card className="border-sky-100">
-              <CardHeader>
-                <CardTitle>System Settings</CardTitle>
-                <CardDescription>Configure system-wide preferences</CardDescription>
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="text-base sm:text-lg">System Settings</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Configure system-wide preferences</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Emergency Response</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <h3 className="text-base sm:text-lg font-medium">Emergency Response</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium">Auto-assign rescue teams</label>
-                        <p className="text-sm text-gray-500">Automatically assign nearest available teams</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Automatically assign nearest available teams</p>
                       </div>
-                      <Button variant="outline" size="sm">Configure</Button>
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">Configure</Button>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Drone Operations</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <h3 className="text-base sm:text-lg font-medium">Drone Operations</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium">Default stream quality</label>
-                        <p className="text-sm text-gray-500">Set default quality for new streams</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Set default quality for new streams</p>
                       </div>
-                      <Button variant="outline" size="sm">Configure</Button>
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">Configure</Button>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Notifications</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <h3 className="text-base sm:text-lg font-medium">Notifications</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium">Alert thresholds</label>
-                        <p className="text-sm text-gray-500">Configure when to send alerts</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Configure when to send alerts</p>
                       </div>
-                      <Button variant="outline" size="sm">Configure</Button>
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">Configure</Button>
                     </div>
                   </div>
                 </div>
