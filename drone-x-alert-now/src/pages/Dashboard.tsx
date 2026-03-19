@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Shield, Camera, MapPin, Users, Settings, LogOut, 
   AlertTriangle, Phone, Mail, User, Heart, Activity,
-  Navigation, Zap, Clock, CheckCircle, Video, Headphones
+  Navigation, Zap, Clock, CheckCircle, Video, Headphones,
+  AlertCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +21,19 @@ import { ProfileForm } from "@/components/ProfileForm";
 import { EmergencyContacts } from "@/components/EmergencyContacts";
 import { LocationSharing } from "@/components/LocationSharing";
 import EmergencyGuidelines from "@/components/EmergencyGuidelines";
+import { EmergencyWorkflowDemo } from "@/components/EmergencyWorkflowDemo";
+import { emergencyService } from "@/services/emergencyService";
 
 const Dashboard = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [emergencyStats, setEmergencyStats] = useState({
+    total_emergencies: 0,
+    resolved_emergencies: 0,
+    active_emergencies: 0,
+    response_time_avg: 0,
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -37,6 +46,7 @@ const Dashboard = () => {
           navigate("/auth");
         } else {
           checkUserRole(session.user.id);
+          fetchEmergencyStats(session.user.id);
         }
         setLoading(false);
       }
@@ -49,12 +59,23 @@ const Dashboard = () => {
         navigate("/auth");
       } else {
         checkUserRole(session.user.id);
+        fetchEmergencyStats(session.user.id);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Fetch emergency statistics
+  const fetchEmergencyStats = async (userId: string) => {
+    try {
+      const stats = await emergencyService.getEmergencyStatistics(userId);
+      setEmergencyStats(stats);
+    } catch (error) {
+      console.error('Error fetching emergency stats:', error);
+    }
+  };
 
   // Global presence: track user online anywhere in app
   useEffect(() => {
@@ -127,11 +148,11 @@ const Dashboard = () => {
     return null;
   }
 
-  const emergencyStats = [
-    { label: "Active Alerts", value: "3", icon: AlertTriangle, color: "text-red-500" },
-    { label: "Response Time", value: "2.3m", icon: Clock, color: "text-orange-500" },
-    { label: "Resolved Today", value: "12", icon: CheckCircle, color: "text-green-500" },
-    { label: "Teams Available", value: "8", icon: Users, color: "text-blue-500" },
+  const emergencyStatsData = [
+    { label: "Active Alerts", value: emergencyStats.active_emergencies.toString(), icon: AlertTriangle, color: "text-red-500" },
+    { label: "Response Time", value: `${emergencyStats.response_time_avg}m`, icon: Clock, color: "text-orange-500" },
+    { label: "Resolved Today", value: emergencyStats.resolved_emergencies.toString(), icon: CheckCircle, color: "text-green-500" },
+    { label: "Total Emergencies", value: emergencyStats.total_emergencies.toString(), icon: AlertCircle, color: "text-blue-500" },
   ];
 
   return (
@@ -187,7 +208,7 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {emergencyStats.map((stat, index) => (
+          {emergencyStatsData.map((stat, index) => (
             <Card key={index} className="border-sky-100 hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -204,11 +225,12 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="camera">Live Feed</TabsTrigger>
             <TabsTrigger value="map">GPS Tracking</TabsTrigger>
             {isAdmin && <TabsTrigger value="admin">Stream Control</TabsTrigger>}
+            <TabsTrigger value="demo">Emergency Demo</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="guidelines">Guidelines</TabsTrigger>
           </TabsList>
@@ -312,6 +334,18 @@ const Dashboard = () => {
               <AdminStreamControls />
             </TabsContent>
           )}
+
+          <TabsContent value="demo">
+            <EmergencyWorkflowDemo 
+              onComplete={() => {
+                toast({
+                  title: "Demo Completed",
+                  description: "Emergency workflow demo completed successfully!",
+                });
+                fetchEmergencyStats(user?.id || '');
+              }}
+            />
+          </TabsContent>
 
           <TabsContent value="profile">
             <div className="space-y-6">

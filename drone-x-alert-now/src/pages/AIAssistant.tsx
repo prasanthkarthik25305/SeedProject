@@ -8,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bot, Send, MapPin, Phone, AlertTriangle, Heart, 
   Shield, Home, Utensils, MessageCircle, CheckCircle, Clock,
-  Headphones
+  Headphones, Navigation, Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SafePlacesList } from '@/components/SafePlacesList';
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useRealtimeChat } from "@/hooks/useRealtimeChat";
+import { emergencyService, type SafeZone } from "@/services/emergencyService";
+import { supabase } from "@/integrations/supabase/client";
 
 const AIAssistant = () => {
   const [input, setInput] = useState("");
@@ -22,6 +24,8 @@ const AIAssistant = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [lastAIResponse, setLastAIResponse] = useState<string>('');
+  const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
+  const [emergencyDetected, setEmergencyDetected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -32,10 +36,13 @@ const AIAssistant = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          setUserLocation(location);
+          // Fetch nearby safe zones when location is available
+          fetchSafeZones(location);
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -48,6 +55,16 @@ const AIAssistant = () => {
       );
     }
   }, [toast]);
+
+  // Fetch nearby safe zones
+  const fetchSafeZones = async (location: { lat: number; lng: number }) => {
+    try {
+      const zones = await emergencyService.getNearbySafeZones(location);
+      setSafeZones(zones);
+    } catch (error) {
+      console.error('Error fetching safe zones:', error);
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -88,30 +105,98 @@ const AIAssistant = () => {
     const content = `Emergency: ${category?.label}`;
     
     await sendMessage(content, undefined, userLocation ?? undefined);
+    await triggerEmergencyWorkflow(type, category?.label || 'Unknown Emergency');
     setShowConfirmation(true);
+  };
+
+  // Trigger complete emergency workflow
+  const triggerEmergencyWorkflow = async (emergencyType: string, description: string) => {
+    if (!userLocation) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setEmergencyDetected(true);
+
+      // Determine severity based on type
+      let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
+      if (emergencyType === 'medical') severity = 'critical';
+      else if (emergencyType === 'disaster') severity = 'high';
+
+      // Create hazard detection
+      const hazard = await emergencyService.detectHazard(user.id, userLocation, {
+        type: emergencyType as any,
+        severity,
+        source: 'ai_voice',
+        description: `Emergency detected via AI assistant: ${description}`,
+        confidence: 0.9,
+      });
+
+      // Create emergency alerts
+      await emergencyService.createEmergencyAlert(hazard.id, user.id, {
+        alertType: 'neighbor_alert',
+        message: `Emergency detected via AI assistant: ${description}. Location: ${userLocation.lat}, ${userLocation.lng}`,
+        urgencyLevel: severity,
+        triggeredBy: 'automatic',
+      });
+
+      await emergencyService.createEmergencyAlert(hazard.id, user.id, {
+        alertType: 'admin_alert',
+        message: `EMERGENCY: AI detected ${description} for user ${user.id}. Location: ${userLocation.lat}, ${userLocation.lng}`,
+        urgencyLevel: severity,
+        triggeredBy: 'automatic',
+      });
+
+      toast({
+        title: "🚨 Emergency Detected!",
+        description: "Emergency services have been alerted and safe zones identified.",
+        variant: "destructive",
+      });
+
+    } catch (error) {
+      console.error('Error triggering emergency workflow:', error);
+      toast({
+        title: "Error",
+        description: "Failed to trigger emergency workflow.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Analyze message for emergency keywords
+  const analyzeForEmergency = (message: string): boolean => {
+    const emergencyKeywords = [
+      'help', 'danger', 'emergency', 'save me', 'fire', 'flood', 
+      'earthquake', 'accident', 'hurt', 'injured', 'trapped', 
+      'stuck', 'lost', 'need help', 'police', 'ambulance', 'rescue'
+    ];
+
+    return emergencyKeywords.some(keyword => 
+      message.toLowerCase().includes(keyword)
+    );
   };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     
     await sendMessage(input, undefined, userLocation ?? undefined);
-    setInput("");
     
-    // Check for emergency keywords
-    const lowerInput = input.toLowerCase();
-    if (lowerInput.includes("help") || lowerInput.includes("emergency") || 
-        lowerInput.includes("rescue") || lowerInput.includes("trapped")) {
+    // Check for emergency keywords and trigger workflow
+    if (analyzeForEmergency(input)) {
+      await triggerEmergencyWorkflow('other', `User reported: ${input}`);
       setShowConfirmation(true);
     }
+    
+    setInput("");
   };
 
   const handleVoiceTranscript = async (transcript: string) => {
     await sendMessage(transcript, undefined, userLocation ?? undefined);
     
-    // Check for emergency keywords
-    const lowerTranscript = transcript.toLowerCase();
-    if (lowerTranscript.includes("help") || lowerTranscript.includes("emergency") || 
-        lowerTranscript.includes("rescue") || lowerTranscript.includes("trapped")) {
+    // Check for emergency keywords and trigger workflow
+    if (analyzeForEmergency(transcript)) {
+      await triggerEmergencyWorkflow('other', `Voice transcript: ${transcript}`);
       setShowConfirmation(true);
     }
   };
@@ -160,6 +245,34 @@ const AIAssistant = () => {
       </nav>
 
       <div className="max-w-4xl mx-auto p-6">
+        {/* Emergency Status Alert */}
+        {emergencyDetected && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="font-semibold text-red-800 mb-2">🚨 Emergency Protocol Activated</div>
+              <div className="text-sm text-red-700">
+                • Emergency services have been alerted<br/>
+                • Nearby safe zones identified ({safeZones.length} locations)<br/>
+                • Your location has been shared with responders<br/>
+                • Stay calm and follow AI guidance
+              </div>
+              {safeZones.length > 0 && (
+                <div className="mt-3">
+                  <div className="font-medium">Closest Safe Zone:</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Navigation className="h-4 w-4" />
+                    <span>{safeZones[0].name} ({safeZones[0].distance_km?.toFixed(1)} km)</span>
+                    <Button size="sm" variant="outline" className="ml-2">
+                      Get Directions
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full mb-4">

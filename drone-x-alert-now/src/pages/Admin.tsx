@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Shield, Users, Settings, LogOut, AlertTriangle, Activity,
   Database, Video, UserCheck, MapPin, Clock, CheckCircle,
-  Plus, Edit, Trash2, Eye, Play, Square
+  Plus, Edit, Trash2, Eye, Play, Square, Zap
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,11 +17,16 @@ import { AdminStreamControls } from "@/components/AdminStreamControls";
 import { SystemAlertsManager } from "@/components/SystemAlertsManager";
 import { UserManagement } from "@/components/UserManagement";
 import { EmergencyRequestsAdmin } from "@/components/EmergencyRequestsAdmin";
+import { emergencyService } from "@/services/emergencyService";
+import type { EmergencyAlert } from '@/services/emergencyService';
+import EmergencyAlertsList from '@/components/EmergencyAlertsList';
+import { useAuth } from '@/hooks/useAuth';
 
 const Admin = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeEmergencies, setActiveEmergencies] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -32,6 +38,7 @@ const Admin = () => {
           navigate("/admin-auth");
         } else {
           checkAdminRole(session.user.id);
+          fetchActiveEmergencies();
         }
         setLoading(false);
       }
@@ -43,12 +50,75 @@ const Admin = () => {
         navigate("/admin-auth");
       } else {
         checkAdminRole(session.user.id);
+        fetchActiveEmergencies();
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Subscribe to real-time emergency updates from Supabase (cross-browser sync)
+    const emergencyChannel = supabase
+      .channel('emergency_alerts_admin')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'emergency_alerts'
+        },
+        (payload) => {
+          console.log('🔄 Real-time emergency update received:', payload);
+          fetchActiveEmergencies();
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 Emergency subscription status:', status);
+      });
+
+    // Subscribe to broadcast channel for manual resolution sync
+    const broadcastChannel = supabase
+      .channel('emergency_resolution_broadcast')
+      .on('broadcast', { event: 'emergency_resolved' }, (payload: any) => {
+        console.log('📢 Admin received resolution broadcast:', payload);
+        fetchActiveEmergencies();
+      })
+      .subscribe();
+
+    // Also listen for localStorage changes (cross-tab sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'emergency_resolved') {
+        console.log('🔄 Admin: Storage change detected, refreshing count');
+        fetchActiveEmergencies();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom events (same-tab sync)
+    const handleCustomEvent = () => {
+      console.log('🔄 Admin: Custom event detected, refreshing count');
+      fetchActiveEmergencies();
+    };
+    window.addEventListener('emergency_resolved', handleCustomEvent);
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(emergencyChannel);
+      supabase.removeChannel(broadcastChannel);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('emergency_resolved', handleCustomEvent);
+    };
   }, [navigate]);
+
+  // Fetch active emergencies count
+  const fetchActiveEmergencies = async () => {
+    console.log('🔄 Admin.fetchActiveEmergencies called');
+    try {
+      const emergencies = await emergencyService.getAllActiveEmergencies();
+      console.log('📊 Admin received emergencies count:', emergencies.length);
+      setActiveEmergencies(emergencies.length);
+    } catch (error) {
+      console.error('Error fetching active emergencies:', error);
+    }
+  };
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -167,7 +237,7 @@ const Admin = () => {
               {[
                 { label: "Active Users", value: "247", icon: Users, color: "text-blue-500" },
                 { label: "Live Streams", value: "3", icon: Video, color: "text-green-500" },
-                { label: "Active Emergencies", value: "5", icon: AlertTriangle, color: "text-red-500" },
+                { label: "Active Emergencies", value: activeEmergencies.toString(), icon: AlertTriangle, color: "text-red-500" },
                 { label: "System Status", value: "Online", icon: Activity, color: "text-green-500" },
               ].map((stat, index) => (
                 <Card key={index} className="border-sky-100 hover:shadow-lg transition-shadow">
@@ -250,7 +320,34 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="emergencies">
-            <EmergencyRequestsAdmin />
+            <div className="space-y-6">
+              <Card className="border-sky-100">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    Active Emergency Alerts
+                    <Badge variant="destructive" className="ml-2">
+                      {activeEmergencies} Active
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time emergency alerts from the system
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Button onClick={() => console.log('Debug: Active emergencies:', activeEmergencies)} variant="outline" size="sm">
+                        🐛 Debug Info
+                      </Button>
+                      <Button onClick={() => fetchActiveEmergencies()} variant="outline" size="sm">
+                        🔄 Refresh Alerts
+                      </Button>
+                    </div>
+                    <EmergencyAlertsList />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="alerts">
