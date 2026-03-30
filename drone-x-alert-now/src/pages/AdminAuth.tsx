@@ -272,7 +272,7 @@ const AdminAuth = () => {
           <Link to="/" className="inline-flex items-center space-x-2 mb-6 group">
             <Shield className="h-8 w-8 text-slate-600 group-hover:text-slate-700 transition-colors" />
             <span className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-blue-600 bg-clip-text text-transparent">
-              DroneX Admin
+              RavNResQ Admin
             </span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Administrative Portal</h1>
@@ -309,7 +309,7 @@ const AdminAuth = () => {
                       <Input
                         id="signin-email"
                         type="email"
-                        placeholder="admin@dronex.com"
+                        placeholder="admin@ravnresq.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 border-slate-200 focus:border-slate-400"
@@ -405,7 +405,7 @@ const AdminAuth = () => {
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="admin@dronex.com"
+                        placeholder="admin@ravnresq.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 border-slate-200 focus:border-slate-400"

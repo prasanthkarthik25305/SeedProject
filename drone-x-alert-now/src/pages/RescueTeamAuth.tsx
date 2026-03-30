@@ -255,7 +255,7 @@ const RescueTeamAuth = () => {
           <Link to="/" className="inline-flex items-center space-x-2 mb-6 group">
             <Shield className="h-8 w-8 text-orange-500 group-hover:text-orange-600 transition-colors" />
             <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
-              DroneX Rescue
+              RavNResQ Rescue
             </span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Rescue Team Portal</h1>
@@ -343,7 +343,7 @@ const RescueTeamAuth = () => {
                   <span>Join Rescue Network</span>
                 </CardTitle>
                 <CardDescription>
-                  Register your rescue team with DroneX
+                  Register your rescue team with RavNResQ
                 </CardDescription>
               </CardHeader>
               <CardContent>

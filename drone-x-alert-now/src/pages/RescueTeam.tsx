@@ -125,7 +125,7 @@ const RescueTeam = () => {
               <Link to="/" className="flex items-center space-x-2">
                 <Shield className="h-8 w-8 text-orange-500" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
-                  DroneX Rescue
+                  RavNResQ Rescue
                 </span>
               </Link>
               <Badge className="ml-4 bg-orange-100 text-orange-700">

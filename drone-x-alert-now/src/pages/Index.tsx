@@ -82,7 +82,7 @@ const Index = () => {
             <div className="flex items-center space-x-2">
               <Shield className="h-8 w-8 text-sky-500" />
               <span className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-                DroneX
+                RavNResQ
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -120,7 +120,7 @@ const Index = () => {
           </Badge>
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-r from-gray-900 via-sky-800 to-sky-600 bg-clip-text text-transparent">
-              DroneX: Your
+              RavNResQ: Your
             </span>
             <br />
             <span className="bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
@@ -189,7 +189,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-gray-900 to-sky-600 bg-clip-text text-transparent">
-              How DroneX Works
+              How RavNResQ Works
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Simple, efficient, and life-saving emergency response in four easy steps.
@@ -252,7 +252,7 @@ const Index = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Shield className="h-6 w-6 text-sky-400" />
-                <span className="text-xl font-bold">DroneX</span>
+                <span className="text-xl font-bold">RavNResQ</span>
               </div>
               <p className="text-gray-400 leading-relaxed">
                 Revolutionary disaster management platform powered by AI technology.
@@ -287,7 +287,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400">© 2024 DroneX. All rights reserved.</p>
+            <p className="text-gray-400">© 2024 RavNResQ. All rights reserved.</p>
             <div className="flex items-center space-x-2 mt-4 md:mt-0">
               <Globe className="h-4 w-4 text-gray-400" />
               <span className="text-gray-400">Global Emergency Response Network</span>

@@ -165,7 +165,7 @@ const Dashboard = () => {
               <Link to="/" className="flex items-center space-x-2">
                 <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-sky-500" />
                 <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-                  DroneX
+                  RavNResQ
                 </span>
               </Link>
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 ml-2 sm:ml-4">

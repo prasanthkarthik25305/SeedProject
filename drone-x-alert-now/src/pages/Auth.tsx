@@ -168,7 +168,7 @@ const Auth = () => {
           <Link to="/" className="inline-flex items-center space-x-2 mb-4 sm:mb-6 group">
             <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-sky-500 group-hover:text-sky-600 transition-colors" />
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-              DroneX
+              RavNResQ
             </span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
@@ -287,7 +287,7 @@ const Auth = () => {
               <CardHeader className="text-center pb-2 px-4 sm:px-6">
                 <CardTitle className="text-lg sm:text-xl">Create Account</CardTitle>
                 <CardDescription className="text-sm sm:text-base">
-                  Join DroneX for emergency management services
+                  Join RavNResQ for emergency management services
                 </CardDescription>
               </CardHeader>
               <CardContent className="px-4 sm:px-6">

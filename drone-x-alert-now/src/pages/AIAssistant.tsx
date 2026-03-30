@@ -226,7 +226,7 @@ const AIAssistant = () => {
               <Link to="/" className="flex items-center space-x-2">
                 <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-sky-500" />
                 <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-                  DroneX
+                  RavNResQ
                 </span>
               </Link>
               <Badge className="ml-2 sm:ml-4 bg-green-100 text-green-700 text-xs sm:text-sm">
@@ -279,7 +279,7 @@ const AIAssistant = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-sky-500 to-sky-600 rounded-full mb-3 sm:mb-4">
             <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">DroneX AI Assistant</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">RavNResQ AI Assistant</h1>
           <p className="text-sm sm:text-base text-gray-600 px-2">
             24/7 Emergency Response AI • Real-time Location Tracking • Voice & Text Interface
           </p>
@@ -417,7 +417,7 @@ const AIAssistant = () => {
                           {message.message_type === 'assistant' && (
                             <div className="flex items-center space-x-2 mb-2">
                               <Bot className="h-4 w-4 text-sky-500" />
-                              <span className="text-xs font-medium text-sky-600">DroneX AI</span>
+                              <span className="text-xs font-medium text-sky-600">RavNResQ AI</span>
                             </div>
                           )}
                           <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.content}</p>
@@ -456,7 +456,7 @@ const AIAssistant = () => {
                       <div className="bg-gray-100 text-gray-900 p-3 sm:p-4 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <Bot className="h-4 w-4 text-sky-500" />
-                          <span className="text-xs font-medium text-sky-600">DroneX AI</span>
+                          <span className="text-xs font-medium text-sky-600">RavNResQ AI</span>
                         </div>
                         <div className="flex space-x-2 mt-2">
                           <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"></div>
