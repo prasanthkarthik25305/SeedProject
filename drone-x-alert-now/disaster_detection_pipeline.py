@@ -7,8 +7,15 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
+# Try to import transformers (optional)
+try:
+    from transformers import CLIPProcessor, CLIPModel
+    TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    TRANSFORMERS_AVAILABLE = False
+    print("⚠️ Transformers not available - using YOLOv8 detection only")
+
 # Computer Vision Models
-from transformers import CLIPProcessor, CLIPModel
 from ultralytics import YOLO
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
@@ -33,13 +40,13 @@ class DisasterDetectionPipeline:
     Modular Disaster Detection Pipeline using CLIP and YOLOv8
     """
     
-    def __init__(self, device: Optional[str] = None, use_clip: bool = True):
+    def __init__(self, device: Optional[str] = None, use_clip: bool = False):
         """Initialize the pipeline with models"""
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"🖥️ Using device: {self.device}")
         
         # Initialize models
-        self._load_models(use_clip)
+        self._load_models(use_clip and TRANSFORMERS_AVAILABLE)
         
         # Initialize database
         self._init_database()
@@ -60,7 +67,7 @@ class DisasterDetectionPipeline:
             logger.info("📥 Loading YOLOv8 model...")
             self.yolo_model = YOLO("yolov8n.pt")  # Use nano for speed
             
-            if use_clip:
+            if use_clip and TRANSFORMERS_AVAILABLE:
                 logger.info("📥 Loading CLIP model...")
                 try:
                     self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
@@ -76,7 +83,10 @@ class DisasterDetectionPipeline:
                     self.clip_model = None
                     self.clip_processor = None
             else:
-                logger.info("🔄 Skipping CLIP model loading...")
+                if not TRANSFORMERS_AVAILABLE:
+                    logger.info("🔄 Transformers not available - using YOLOv8 detection only...")
+                else:
+                    logger.info("🔄 Skipping CLIP model loading...")
                 self.clip_model = None
                 self.clip_processor = None
             
@@ -414,18 +424,32 @@ class DisasterDetectionPipeline:
             
             columns = [description[0] for description in cursor.description]
             results = []
-            
-            for row in cursor.fetchall():
-                results.append(dict(zip(columns, row)))
-            
-            conn.close()
-            return results
-            
-        except Exception as e:
-            logger.error(f"❌ Error getting recent detections: {e}")
-            return []
 
-# FastAPI Integration (Optional)
+# Import required libraries
+import torch
+import cv2
+import numpy as np
+from PIL import Image
+import sqlite3
+import json
+import os
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict, Optional, Tuple
+import logging
+
+# Try to import transformers (optional)
+try:
+    from transformers import CLIPProcessor, CLIPModel
+    TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    TRANSFORMERS_AVAILABLE = False
+    print("⚠️ Transformers not available - using YOLOv8 detection only")
+
+# Import YOLOv8
+from ultralytics import YOLO
+
+# Import FastAPI
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
