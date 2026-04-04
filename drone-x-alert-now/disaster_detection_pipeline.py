@@ -33,13 +33,13 @@ class DisasterDetectionPipeline:
     Modular Disaster Detection Pipeline using CLIP and YOLOv8
     """
     
-    def __init__(self, device: Optional[str] = None):
+    def __init__(self, device: Optional[str] = None, use_clip: bool = True):
         """Initialize the pipeline with models"""
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"🖥️ Using device: {self.device}")
         
         # Initialize models
-        self._load_models()
+        self._load_models(use_clip)
         
         # Initialize database
         self._init_database()
@@ -54,18 +54,31 @@ class DisasterDetectionPipeline:
             "a normal safe scene"
         ]
         
-    def _load_models(self):
+    def _load_models(self, use_clip: bool):
         """Load CLIP and YOLOv8 models"""
         try:
-            logger.info("📥 Loading CLIP model...")
-            self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-            self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-            
-            if self.device == 'cuda':
-                self.clip_model = self.clip_model.to('cuda')
-            
             logger.info("📥 Loading YOLOv8 model...")
             self.yolo_model = YOLO("yolov8n.pt")  # Use nano for speed
+            
+            if use_clip:
+                logger.info("📥 Loading CLIP model...")
+                try:
+                    self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+                    self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+                    
+                    if self.device == 'cuda':
+                        self.clip_model = self.clip_model.to('cuda')
+                    
+                    logger.info("✅ CLIP model loaded successfully!")
+                except Exception as e:
+                    logger.error(f"⚠️ CLIP model not available: {e}")
+                    logger.info("🔄 Continuing with YOLOv8 detection only...")
+                    self.clip_model = None
+                    self.clip_processor = None
+            else:
+                logger.info("🔄 Skipping CLIP model loading...")
+                self.clip_model = None
+                self.clip_processor = None
             
             logger.info("✅ All models loaded successfully!")
             
