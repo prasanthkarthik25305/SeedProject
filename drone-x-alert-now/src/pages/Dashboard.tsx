@@ -16,6 +16,8 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { RealtimeDroneStream } from "@/components/RealtimeDroneStream";
 import { AdminStreamControls } from "@/components/AdminStreamControls";
 import { LiveMap } from "@/components/LiveMap";
+import { LiveStreamHazardDetection } from "@/components/LiveStreamHazardDetection";
+import { DemoDisasterDetection } from "@/components/DemoDisasterDetection";
 import GoogleMap from "@/components/GoogleMap";
 import { ProfileForm } from "@/components/ProfileForm";
 import { EmergencyContacts } from "@/components/EmergencyContacts";
@@ -301,20 +303,23 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="camera">
-            <Card className="border-sky-100">
-              <CardHeader className="pb-3 sm:pb-6">
-                <CardTitle className="flex items-center text-base sm:text-lg">
-                  <Video className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-sky-500" />
-                  Live Drone Stream
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  High-resolution live feed with AI-powered object detection
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0 sm:p-6">
-                <RealtimeDroneStream fullSize />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <LiveStreamHazardDetection autoStart={false} />
+              <Card className="border-sky-100">
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="flex items-center text-base sm:text-lg">
+                    <Video className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-sky-500" />
+                    Admin Drone Streams
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    High-resolution live feed with AI-powered object detection
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 sm:p-6">
+                  <RealtimeDroneStream fullSize />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="map">
@@ -341,15 +346,7 @@ const Dashboard = () => {
           )}
 
           <TabsContent value="demo">
-            <EmergencyWorkflowDemo 
-              onComplete={() => {
-                toast({
-                  title: "Demo Completed",
-                  description: "Emergency workflow demo completed successfully!",
-                });
-                fetchEmergencyStats(user?.id || '');
-              }}
-            />
+            <DemoDisasterDetection isAdmin={isAdmin} />
           </TabsContent>
 
           <TabsContent value="profile">

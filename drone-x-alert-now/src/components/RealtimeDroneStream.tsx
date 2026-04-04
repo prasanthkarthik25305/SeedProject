@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useDroneStreaming } from '@/hooks/useDroneStreaming';
 import type { DroneStream } from '@/types/streaming';
+import { StreamHazardDetector } from './StreamHazardDetector';
 
 interface RealtimeDroneStreamProps {
   fullSize?: boolean;
@@ -356,6 +357,13 @@ export const RealtimeDroneStream = ({ fullSize = false }: RealtimeDroneStreamPro
           </CardContent>
         </Card>
       </div>
+
+      {/* Standalone Hazard Detection */}
+      {!currentStream && !isAdmin && (
+        <div className="mt-6">
+          <StreamHazardDetector />
+        </div>
+      )}
     </div>
   );
 };

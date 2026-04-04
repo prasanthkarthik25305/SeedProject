@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Square, AlertTriangle, Loader2, Signal } from 'lucide-react';
+import { HazardDetection } from './HazardDetection';
 
 interface DetectedObject {
   class: string;
@@ -333,6 +334,19 @@ export const LiveStreamBroadcast = ({ streamId, isAdmin, onStop, quality }: Live
           </div>
         </div>
       </CardContent>
+      
+      {/* AI Hazard Detection */}
+      {isStreaming && (
+        <div className="mt-4">
+          <HazardDetection 
+            streamElement={videoRef.current}
+            onHazardDetected={(hazard) => {
+              console.log('Hazard detected:', hazard);
+              // You can add additional logic here for emergency alerts
+            }}
+          />
+        </div>
+      )}
     </Card>
   );
 };
