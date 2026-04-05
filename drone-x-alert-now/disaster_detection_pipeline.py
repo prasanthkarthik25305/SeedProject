@@ -7,13 +7,6 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
-# Add safe globals for PyTorch 2.6+
-try:
-    torch.serialization.add_safe_globals(['ultralytics.nn.tasks.DetectionModel'])
-except AttributeError:
-    # PyTorch version doesn't support add_safe_globals
-    pass
-
 # Try to import transformers (optional)
 try:
     from transformers import CLIPProcessor, CLIPModel
@@ -74,7 +67,8 @@ class DisasterDetectionPipeline:
         """Load CLIP and YOLOv8 models"""
         try:
             logger.info("📥 Loading YOLOv8 model...")
-            self.yolo_model = YOLO("yolov8n.pt")  # Use nano for speed
+            # Use weights_only=False to handle PyTorch 2.6 security changes
+            self.yolo_model = YOLO("yolov8n.pt", weights_only=False)  # Use nano for speed
             
             if use_clip and TRANSFORMERS_AVAILABLE:
                 logger.info("📥 Loading CLIP model...")
