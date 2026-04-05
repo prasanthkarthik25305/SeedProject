@@ -19,6 +19,8 @@ except ImportError:
 from ultralytics import YOLO
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+import cv2
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,7 +43,7 @@ class DisasterDetectionPipeline:
     """
     
     def __init__(self, device: Optional[str] = None, use_clip: bool = False):
-        """Initialize the pipeline with models"""
+        """Initialize pipeline with models"""
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"🖥️ Using device: {self.device}")
         
@@ -103,33 +105,16 @@ class DisasterDetectionPipeline:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Create detections table
+            # Create table if not exists
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS detections (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
-                    image_path TEXT,
                     disaster_type TEXT NOT NULL,
                     confidence REAL NOT NULL,
-                    is_disaster INTEGER NOT NULL,
-                    severity TEXT DEFAULT 'medium',
-                    objects_detected TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Create objects table for detailed object storage
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS detected_objects (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    detection_id INTEGER,
-                    object_class TEXT NOT NULL,
-                    confidence REAL NOT NULL,
-                    bbox_x1 REAL,
-                    bbox_y1 REAL,
-                    bbox_x2 REAL,
-                    bbox_y2 REAL,
-                    FOREIGN KEY (detection_id) REFERENCES detections (id)
+                    objects_detected TEXT NOT NULL,
+                    image_path TEXT NOT NULL,
+                    severity TEXT DEFAULT 'medium'
                 )
             """)
             
@@ -141,262 +126,63 @@ class DisasterDetectionPipeline:
             logger.error(f"❌ Error initializing database: {e}")
             raise
     
-    def classify_disaster(self, image: Image.Image) -> Tuple[str, float]:
+    def process_image(self, image_path: str, filename: str) -> Dict:
         """
-        Classify disaster type using CLIP zero-shot classification
-        """
-        try:
-            logger.info("🔍 Classifying disaster with CLIP...")
-            
-            # Process image and text
-            inputs = self.clip_processor(
-                text=self.disaster_prompts,
-                images=image,
-                return_tensors="pt",
-                padding=True
-            )
-            
-            if self.device == 'cuda':
-                inputs = {k: v.to('cuda') for k, v in inputs.items()}
-            
-            # Get predictions
-            with torch.no_grad():
-                outputs = self.clip_model(**inputs)
-                logits_per_image = outputs.logits_per_image
-                probs = logits_per_image.softmax(dim=1)
-            
-            # Get top prediction
-            top_idx = probs.argmax().item()
-            confidence = probs[0][top_idx].item()
-            label = self.disaster_prompts[top_idx]
-            
-            logger.info(f"🎯 CLIP Result: {label} (confidence: {confidence:.3f})")
-            return label, confidence
-            
-        except Exception as e:
-            logger.error(f"❌ Error in disaster classification: {e}")
-            return "a normal safe scene", 0.1
-    
-    def detect_objects(self, image_path: str) -> List[Dict]:
-        """
-        Detect objects using YOLOv8
+        Process image for disaster detection
         """
         try:
-            logger.info("🔍 Detecting objects with YOLOv8...")
+            logger.info(f"🔍 Processing image: {filename}")
             
-            results = self.yolo_model(image_path, verbose=False)
-            detections = []
+            # Load image
+            image = Image.open(image_path).convert('RGB')
             
-            for r in results:
-                boxes = r.boxes
+            # YOLOv8 detection
+            results = self.yolo_model(image_path)
+            
+            # Process YOLOv8 results
+            objects_detected = []
+            for result in results:
+                boxes = result.boxes
                 if boxes is not None:
                     for box in boxes:
-                        cls_id = int(box.cls[0])
-                        conf = float(box.conf[0])
-                        xyxy = box.xyxy[0].cpu().numpy()
+                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                        conf = box.conf[0].cpu().numpy()
+                        cls = int(box.cls[0].cpu().numpy())
                         
-                        detections.append({
-                            "class": r.names[cls_id],
-                            "confidence": conf,
-                            "bbox": {
-                                "x1": float(xyxy[0]),
-                                "y1": float(xyxy[1]),
-                                "x2": float(xyxy[2]),
-                                "y2": float(xyxy[3])
-                            }
+                        # Get class name
+                        class_name = self.yolo_model.names[cls]
+                        
+                        objects_detected.append({
+                            "class": class_name,
+                            "confidence": float(conf),
+                            "bbox": [float(x1), float(y1), float(x2), float(y2)]
                         })
             
-            logger.info(f"🎯 YOLOv8 detected {len(detections)} objects")
-            return detections
+            # Determine if disaster based on detected objects
+            disaster_objects = ['fire', 'smoke', 'flame', 'person', 'car', 'truck', 'building']
+            detected_disaster_objects = [obj for obj in objects_detected if obj['class'] in disaster_objects]
             
-        except Exception as e:
-            logger.error(f"❌ Error in object detection: {e}")
-            return []
-    
-    def is_disaster(self, label: str, confidence: float, threshold: float = 0.5) -> bool:
-        """
-        Apply decision logic to determine if it's a disaster
-        """
-        if "normal safe scene" in label:
-            return False
-        if confidence < threshold:
-            return False
-        return True
-    
-    def determine_severity(self, confidence: float, disaster_type: str) -> str:
-        """
-        Determine severity based on confidence and disaster type
-        """
-        if confidence > 0.8:
-            return "critical"
-        elif confidence > 0.6:
-            return "high"
-        elif confidence > 0.4:
-            return "medium"
-        else:
-            return "low"
-    
-    def save_result(self, result: DisasterResult) -> int:
-        """
-        Save detection result to database
-        """
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+            is_disaster = len(detected_disaster_objects) > 0
+            disaster_type = self._classify_disaster_type(objects_detected)
+            confidence = max([obj['confidence'] for obj in objects_detected]) if objects_detected else 0.0
+            severity = self._determine_severity(objects_detected)
             
-            # Save main detection
-            cursor.execute("""
-                INSERT INTO detections 
-                (timestamp, image_path, disaster_type, confidence, is_disaster, severity, objects_detected)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                result.timestamp,
-                result.image_path,
-                result.disaster_type,
-                result.confidence,
-                int(result.is_disaster),
-                result.severity,
-                json.dumps(result.objects_detected)
-            ))
-            
-            detection_id = cursor.lastrowid
-            
-            # Save individual objects
-            for obj in result.objects_detected:
-                if 'bbox' in obj:
-                    cursor.execute("""
-                        INSERT INTO detected_objects 
-                        (detection_id, object_class, confidence, bbox_x1, bbox_y1, bbox_x2, bbox_y2)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        detection_id,
-                        obj['class'],
-                        obj['confidence'],
-                        obj['bbox']['x1'],
-                        obj['bbox']['y1'],
-                        obj['bbox']['x2'],
-                        obj['bbox']['y2']
-                    ))
-            
-            conn.commit()
-            conn.close()
-            
-            logger.info(f"💾 Result saved to database with ID: {detection_id}")
-            return detection_id
-            
-        except Exception as e:
-            logger.error(f"❌ Error saving result: {e}")
-            return -1
-    
-    def create_annotated_image(self, image_path: str, result: DisasterResult, output_path: str) -> str:
-        """
-        Create annotated image with bounding boxes and disaster info
-        """
-        try:
-            image = Image.open(image_path)
-            draw = ImageDraw.Draw(image)
-            
-            # Draw bounding boxes
-            for obj in result.objects_detected:
-                if 'bbox' in obj:
-                    bbox = obj['bbox']
-                    draw.rectangle([
-                        (bbox['x1'], bbox['y1']),
-                        (bbox['x2'], bbox['y2'])
-                    ], outline="red", width=2)
-                    
-                    # Draw label
-                    label = f"{obj['class']} ({obj['confidence']:.2f})"
-                    draw.text((bbox['x1'], bbox['y1'] - 20), label, fill="red")
-            
-            # Draw disaster info banner
-            banner_height = 60
-            banner_color = "red" if result.is_disaster else "green"
-            
-            # Create banner
-            banner = Image.new('RGB', (image.width, banner_height), banner_color)
-            banner_draw = ImageDraw.Draw(banner)
-            
-            # Add text to banner
-            try:
-                font = ImageFont.truetype("arial.ttf", 16)
-            except:
-                font = ImageFont.load_default()
-            
-            banner_text = f"DISASTER: {result.disaster_type.upper()} ({result.confidence:.1%})"
-            if not result.is_disaster:
-                banner_text = f"STATUS: SAFE ({result.confidence:.1%})"
-            
-            banner_draw.text((10, 20), banner_text, fill="white", font=font)
-            
-            # Combine image and banner
-            annotated = Image.new('RGB', (image.width, image.height + banner_height))
-            annotated.paste(banner, (0, 0))
-            annotated.paste(image, (0, banner_height))
-            
-            # Save annotated image
-            annotated.save(output_path)
-            logger.info(f"🖼️ Annotated image saved: {output_path}")
-            
-            return output_path
-            
-        except Exception as e:
-            logger.error(f"❌ Error creating annotated image: {e}")
-            return image_path
-    
-    def process_image(self, image_path: str, output_dir: str = "output") -> Dict:
-        """
-        Main pipeline function to process an image
-        """
-        try:
-            logger.info(f"🚀 Processing image: {image_path}")
-            
-            # Step 1: Load image
-            image = Image.open(image_path)
-            
-            # Step 2: Classification
-            label, confidence = self.classify_disaster(image)
-            
-            # Step 3: Decision Logic
-            disaster_flag = self.is_disaster(label, confidence)
-            severity = self.determine_severity(confidence, label)
-            
-            # Step 4: Object Detection
-            objects = self.detect_objects(image_path)
-            
-            # Step 5: Create result object
-            result = DisasterResult(
-                is_disaster=disaster_flag,
-                disaster_type=label,
-                confidence=confidence,
-                objects_detected=objects,
-                timestamp=datetime.now().isoformat(),
-                image_path=image_path,
-                severity=severity
-            )
-            
-            # Step 6: Save to database
-            detection_id = self.save_result(result)
-            
-            # Step 7: Create annotated image
-            Path(output_dir).mkdir(exist_ok=True)
-            output_image_path = f"{output_dir}/annotated_{Path(image_path).stem}.jpg"
-            self.create_annotated_image(image_path, result, output_image_path)
-            
-            # Step 8: Prepare output
-            output = {
-                "id": detection_id,
-                "is_disaster": disaster_flag,
-                "disaster_type": label,
-                "confidence": round(confidence, 3),
-                "severity": severity,
-                "objects_detected": objects,
-                "timestamp": result.timestamp,
-                "annotated_image_path": output_image_path
+            # Create result
+            result = {
+                "is_disaster": is_disaster,
+                "disaster_type": disaster_type,
+                "confidence": confidence,
+                "objects_detected": objects_detected,
+                "timestamp": datetime.now().isoformat(),
+                "image_path": image_path,
+                "severity": severity
             }
             
-            logger.info(f"✅ Processing complete! Disaster detected: {disaster_flag}")
-            return output
+            # Save to database
+            self._save_to_database(result)
+            
+            logger.info(f"✅ Processing complete: {disaster_type} ({confidence:.2f})")
+            return result
             
         except Exception as e:
             logger.error(f"❌ Error processing image: {e}")
@@ -408,48 +194,99 @@ class DisasterDetectionPipeline:
                 "objects_detected": []
             }
     
+    def _classify_disaster_type(self, objects_detected: List[Dict]) -> str:
+        """Classify disaster type based on detected objects"""
+        if not objects_detected:
+            return "normal"
+        
+        object_classes = [obj['class'].lower() for obj in objects_detected]
+        
+        # Check for fire-related objects
+        if any(obj in ['fire', 'smoke', 'flame'] for obj in object_classes):
+            return "fire"
+        
+        # Check for water-related objects
+        if any(obj in ['boat', 'surfboard'] for obj in object_classes):
+            return "flood"
+        
+        # Check for building damage
+        if any(obj in ['building', 'house'] for obj in object_classes):
+            return "earthquake"
+        
+        # Check for people in emergency
+        if 'person' in object_classes:
+            return "emergency"
+        
+        return "unknown"
+    
+    def _determine_severity(self, objects_detected: List[Dict]) -> str:
+        """Determine severity based on detected objects"""
+        if not objects_detected:
+            return "low"
+        
+        high_severity_objects = ['fire', 'smoke', 'flame']
+        medium_severity_objects = ['person', 'car', 'truck']
+        
+        object_classes = [obj['class'].lower() for obj in objects_detected]
+        
+        if any(obj in high_severity_objects for obj in object_classes):
+            return "high"
+        elif any(obj in medium_severity_objects for obj in object_classes):
+            return "medium"
+        else:
+            return "low"
+    
+    def _save_to_database(self, result: Dict):
+        """Save detection result to database"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO detections 
+                (timestamp, disaster_type, confidence, objects_detected, image_path, severity)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                result['timestamp'],
+                result['disaster_type'],
+                result['confidence'],
+                json.dumps(result['objects_detected']),
+                result['image_path'],
+                result['severity']
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            logger.error(f"❌ Error saving to database: {e}")
+    
     def get_recent_detections(self, limit: int = 10) -> List[Dict]:
-        """
-        Get recent detections from database
-        """
+        """Get recent detections from database"""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
             cursor.execute("""
                 SELECT * FROM detections 
-                ORDER BY created_at DESC 
+                ORDER BY timestamp DESC 
                 LIMIT ?
             """, (limit,))
             
             columns = [description[0] for description in cursor.description]
             results = []
+            
+            for row in cursor.fetchall():
+                results.append(dict(zip(columns, row)))
+            
+            conn.close()
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ Error fetching recent detections: {e}")
+            return []
 
-# Import required libraries
-import torch
-import cv2
-import numpy as np
-from PIL import Image
-import sqlite3
-import json
-import os
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Optional, Tuple
-import logging
-
-# Try to import transformers (optional)
-try:
-    from transformers import CLIPProcessor, CLIPModel
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
-    print("⚠️ Transformers not available - using YOLOv8 detection only")
-
-# Import YOLOv8
-from ultralytics import YOLO
-
-# Import FastAPI
+# FastAPI app and endpoints
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -476,40 +313,54 @@ pipeline = None
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the pipeline on startup"""
+    """Initialize pipeline on startup"""
     global pipeline
-    pipeline = DisasterDetectionPipeline()
+    try:
+        pipeline = DisasterDetectionPipeline()
+        logger.info("✅ Pipeline initialized successfully!")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize pipeline: {e}")
+        raise
 
 @app.post("/detect")
 async def detect_disaster(file: UploadFile = File(...)):
-    """
-    API endpoint to detect disaster in uploaded image
-    """
+    """Detect disaster in uploaded image"""
+    if not pipeline:
+        raise HTTPException(status_code=500, detail="Pipeline not initialized")
+    
     try:
-        # Save uploaded file
+        # Read uploaded file
         contents = await file.read()
-        image_path = f"temp_{file.filename}"
-        with open(image_path, "wb") as f:
+        
+        # Save temporarily
+        temp_path = f"temp_{file.filename}"
+        with open(temp_path, "wb") as f:
             f.write(contents)
         
         # Process image
-        result = pipeline.process_image(image_path)
+        result = pipeline.process_image(temp_path, file.filename)
         
         # Clean up
-        import os
-        os.remove(image_path)
+        os.remove(temp_path)
         
-        return JSONResponse(content=result)
+        return result
         
     except Exception as e:
+        logger.error(f"❌ Error processing upload: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/detections")
-async def get_detections(limit: int = 10):
-    """
-    Get recent detections
-    """
-    return JSONResponse(content=pipeline.get_recent_detections(limit))
+@app.get("/recent")
+async def get_recent(limit: int = 10):
+    """Get recent detections"""
+    if not pipeline:
+        raise HTTPException(status_code=500, detail="Pipeline not initialized")
+    
+    try:
+        results = pipeline.get_recent_detections(limit)
+        return JSONResponse(content=results)
+    except Exception as e:
+        logger.error(f"❌ Error fetching recent detections: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 async def root():
@@ -525,13 +376,6 @@ if __name__ == "__main__":
     
     # Create pipeline instance
     pipeline = DisasterDetectionPipeline()
-    
-    # Test with an image (optional)
-    test_image = "test_disaster.jpg"  # Replace with actual image path
-    if Path(test_image).exists():
-        result = pipeline.process_image(test_image)
-        print("🎯 Detection Result:")
-        print(json.dumps(result, indent=2))
     
     # Start API server
     print("🌐 Starting FastAPI server...")
