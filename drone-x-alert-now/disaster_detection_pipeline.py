@@ -67,8 +67,17 @@ class DisasterDetectionPipeline:
         """Load CLIP and YOLOv8 models"""
         try:
             logger.info("📥 Loading YOLOv8 model...")
-            # Use weights_only=False to handle PyTorch 2.6 security changes
-            self.yolo_model = YOLO("yolov8n.pt", weights_only=False)  # Use nano for speed
+            # PyTorch 2.6+ defaults torch.load(weights_only=True) which can break Ultralytics
+            # weight loading. We temporarily patch torch.load to force weights_only=False.
+            _orig_torch_load = torch.load
+            def _torch_load_no_weights_only(*args, **kwargs):
+                kwargs.setdefault("weights_only", False)
+                return _orig_torch_load(*args, **kwargs)
+            torch.load = _torch_load_no_weights_only
+            try:
+                self.yolo_model = YOLO("yolov8n.pt")  # Use nano for speed
+            finally:
+                torch.load = _orig_torch_load
             
             if use_clip and TRANSFORMERS_AVAILABLE:
                 logger.info("📥 Loading CLIP model...")
