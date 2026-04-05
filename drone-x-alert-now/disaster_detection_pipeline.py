@@ -7,6 +7,13 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
+# Add safe globals for PyTorch 2.6+
+try:
+    torch.serialization.add_safe_globals(['ultralytics.nn.tasks.DetectionModel'])
+except AttributeError:
+    # PyTorch version doesn't support add_safe_globals
+    pass
+
 # Try to import transformers (optional)
 try:
     from transformers import CLIPProcessor, CLIPModel
@@ -290,9 +297,22 @@ class DisasterDetectionPipeline:
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import uvicorn
 
-app = FastAPI(title="Disaster Detection API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize pipeline on startup"""
+    global pipeline
+    try:
+        pipeline = DisasterDetectionPipeline()
+        logger.info("✅ Pipeline initialized successfully!")
+        yield
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize pipeline: {e}")
+        raise
+
+app = FastAPI(title="Disaster Detection API", version="1.0.0", lifespan=lifespan)
 
 # Add CORS middleware
 app.add_middleware(
@@ -310,17 +330,6 @@ app.add_middleware(
 
 # Global pipeline instance
 pipeline = None
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize pipeline on startup"""
-    global pipeline
-    try:
-        pipeline = DisasterDetectionPipeline()
-        logger.info("✅ Pipeline initialized successfully!")
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize pipeline: {e}")
-        raise
 
 @app.post("/detect")
 async def detect_disaster(file: UploadFile = File(...)):
