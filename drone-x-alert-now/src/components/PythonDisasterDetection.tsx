@@ -73,6 +73,7 @@ const NETWORK_NODES: NetworkNode[] = [
 ];
 
 export const PythonDisasterDetection: React.FC = () => {
+  const isAdmin = true;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [detection, setDetection] = useState<PythonDisasterResult | null>(null);
@@ -86,6 +87,7 @@ export const PythonDisasterDetection: React.FC = () => {
 
   // Check API status
   const checkAPIStatus = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       setApiStatus('checking');
       const pythonApiUrl = import.meta.env.VITE_PYTHON_AI_URL || 'http://localhost:8000';
@@ -98,7 +100,7 @@ export const PythonDisasterDetection: React.FC = () => {
     } catch (error) {
       setApiStatus('offline');
     }
-  }, []);
+  }, [isAdmin]);
 
   // Initialize API status check
   React.useEffect(() => {

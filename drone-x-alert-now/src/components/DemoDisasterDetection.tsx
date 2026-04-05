@@ -115,7 +115,8 @@ export const DemoDisasterDetection: React.FC<DemoDisasterDetectionProps> = ({ is
     
     try {
       setApiStatus('checking');
-      const response = await fetch('http://localhost:8000/');
+      const pythonApiUrl = import.meta.env.VITE_PYTHON_AI_URL || 'http://localhost:8000';
+      const response = await fetch(pythonApiUrl);
       if (response.ok) {
         setApiStatus('online');
       } else {
@@ -157,7 +158,8 @@ export const DemoDisasterDetection: React.FC<DemoDisasterDetectionProps> = ({ is
       const formData = new FormData();
       formData.append('file', blob, filename);
       
-      const apiResponse = await fetch('http://localhost:8000/detect', {
+      const pythonApiUrl = import.meta.env.VITE_PYTHON_AI_URL || 'http://localhost:8000';
+      const apiResponse = await fetch(`${pythonApiUrl}/detect`, {
         method: 'POST',
         body: formData,
       });
