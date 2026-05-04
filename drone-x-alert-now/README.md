@@ -23,6 +23,7 @@ Supabase is used for Auth, Database, Storage, and Realtime.
 Optional but recommended:
 - Render or Railway account for backend API hosting
 - Vercel account for frontend hosting
+- google map apikey
 
 ---
 
